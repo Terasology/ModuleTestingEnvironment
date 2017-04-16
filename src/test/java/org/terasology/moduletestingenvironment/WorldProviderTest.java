@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.terasology;
+package org.terasology.moduletestingenvironment;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.terasology.math.geom.Vector3i;
+import org.terasology.moduletestingenvironment.ModuleTestingEnvironment;
 import org.terasology.world.WorldProvider;
 import org.terasology.world.block.BlockManager;
 

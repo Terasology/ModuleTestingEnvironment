@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.terasology;
+package org.terasology.moduletestingenvironment;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.nio.file.ShrinkWrapFileSystems;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.HeadlessEnvironment;
@@ -40,7 +38,6 @@ import org.terasology.engine.module.ModuleManager;
 import org.terasology.engine.paths.PathManager;
 import org.terasology.engine.subsystem.DisplayDevice;
 import org.terasology.engine.subsystem.headless.device.HeadlessDisplayDevice;
-import org.terasology.engine.subsystem.headless.renderer.HeadlessCanvasRenderer;
 import org.terasology.entitySystem.entity.internal.EngineEntityManager;
 import org.terasology.game.Game;
 import org.terasology.logic.console.Console;
@@ -52,17 +49,11 @@ import org.terasology.network.internal.NetworkSystemImpl;
 import org.terasology.persistence.StorageManager;
 import org.terasology.persistence.internal.ReadWriteStorageManager;
 import org.terasology.physics.CollisionGroupManager;
-import org.terasology.rendering.nui.NUIManager;
-import org.terasology.rendering.nui.internal.CanvasRenderer;
-import org.terasology.rendering.nui.internal.NUIManagerInternal;
 import org.terasology.world.biomes.BiomeManager;
 import org.terasology.world.block.BlockManager;
 
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 
 import static org.mockito.Mockito.mock;
@@ -103,12 +94,11 @@ public class ModuleTestingEnvironment {
          * (Reusing a headless environment after other tests have modified the core registry isn't really clean)
          */
 
-        env = new HeadlessEnvironment();
         Set<Name> dependencies = Sets.newHashSet();
         for(String moduleName : getDependencies()) {
             dependencies.add(new Name(moduleName));
         }
-        env.reset(dependencies);
+        env = new HeadlessEnvironment(dependencies.toArray(new Name[dependencies.size()]));
 
         context = env.getContext();
         assetManager = context.get(AssetManager.class);

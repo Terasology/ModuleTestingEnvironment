@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.terasology;
+package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.terasology.entitySystem.entity.EntityRef;
-import org.terasology.naming.Name;
-import org.terasology.network.NetworkEvent;
+import org.terasology.moduletestingenvironment.ModuleTestingEnvironment;
+import org.terasology.moduletestingenvironment.fixtures.DummyComponent;
+import org.terasology.moduletestingenvironment.fixtures.DummyEvent;
 
 import java.util.Set;
 
