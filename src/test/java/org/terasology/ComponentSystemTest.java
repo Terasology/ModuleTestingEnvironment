@@ -15,13 +15,23 @@
  */
 package org.terasology;
 
+import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.terasology.entitySystem.entity.EntityRef;
+import org.terasology.naming.Name;
+import org.terasology.network.NetworkEvent;
+
+import java.util.Set;
 
 public class ComponentSystemTest extends ModuleTestingEnvironment {
     EntityRef entity;
+
+    @Override
+    public Set<String> getDependencies() {
+        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
+    }
 
     @Before
     public void before() {

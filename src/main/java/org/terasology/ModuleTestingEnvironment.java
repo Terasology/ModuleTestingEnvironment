@@ -15,6 +15,8 @@
  */
 package org.terasology;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.nio.file.ShrinkWrapFileSystems;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -58,6 +60,10 @@ import org.terasology.world.block.BlockManager;
 
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 import static org.mockito.Mockito.mock;
 
@@ -71,15 +77,15 @@ import static org.mockito.Mockito.mock;
  */
 
 public class ModuleTestingEnvironment {
-    protected static Context context;
+    protected Context context;
     private static final Logger logger = LoggerFactory.getLogger(TerasologyTestingEnvironment.class);
 
-    private static BlockManager blockManager;
-    private static Config config;
-    private static AudioManager audioManager;
-    private static CollisionGroupManager collisionGroupManager;
-    private static ModuleManager moduleManager;
-    private static AssetManager assetManager;
+    private BlockManager blockManager;
+    private Config config;
+    private AudioManager audioManager;
+    private CollisionGroupManager collisionGroupManager;
+    private ModuleManager moduleManager;
+    private AssetManager assetManager;
 
     private static HeadlessEnvironment env;
 
@@ -87,8 +93,8 @@ public class ModuleTestingEnvironment {
     private ComponentSystemManager componentSystemManager;
     protected EngineTime mockTime;
 
-    @BeforeClass
-    public static void setupEnvironment() throws Exception {
+    @Before
+    public void setup() throws Exception {
         final JavaArchive homeArchive = ShrinkWrap.create(JavaArchive.class);
         final FileSystem vfs = ShrinkWrapFileSystems.newFileSystem(homeArchive);
         PathManager.getInstance().useOverrideHomePath(vfs.getPath(""));
@@ -96,7 +102,14 @@ public class ModuleTestingEnvironment {
          * Create at least for each class a new headless environemnt as it is fast and prevents side effects
          * (Reusing a headless environment after other tests have modified the core registry isn't really clean)
          */
-        env = new HeadlessEnvironment(new Name("engine"), new Name("ModuleTestingEnvironment"));
+
+        env = new HeadlessEnvironment();
+        Set<Name> dependencies = Sets.newHashSet();
+        for(String moduleName : getDependencies()) {
+            dependencies.add(new Name(moduleName));
+        }
+        env.reset(dependencies);
+
         context = env.getContext();
         assetManager = context.get(AssetManager.class);
         blockManager = context.get(BlockManager.class);
@@ -105,10 +118,6 @@ public class ModuleTestingEnvironment {
         collisionGroupManager = context.get(CollisionGroupManager.class);
         moduleManager = context.get(ModuleManager.class);
 
-    }
-
-    @Before
-    public void setup() throws Exception {
         context.put(ModuleManager.class, moduleManager);
 
         mockTime = mock(EngineTime.class);
@@ -151,6 +160,14 @@ public class ModuleTestingEnvironment {
     @AfterClass
     public static void tearDown() throws Exception {
         env.close();
+    }
+
+    /**
+     * Override this to change which modules must be loaded for the environment
+     * @return
+     */
+    public Set<String> getDependencies() {
+        return Sets.newHashSet("engine");
     }
 
     public EngineEntityManager getEntityManager() {
