@@ -42,6 +42,7 @@ import org.terasology.entitySystem.entity.internal.EngineEntityManager;
 import org.terasology.game.Game;
 import org.terasology.logic.console.Console;
 import org.terasology.logic.console.ConsoleImpl;
+import org.terasology.moduletestingenvironment.worldproviders.SimpleWorldProvider;
 import org.terasology.naming.Name;
 import org.terasology.network.NetworkMode;
 import org.terasology.network.NetworkSystem;
@@ -49,6 +50,7 @@ import org.terasology.network.internal.NetworkSystemImpl;
 import org.terasology.persistence.StorageManager;
 import org.terasology.persistence.internal.ReadWriteStorageManager;
 import org.terasology.physics.CollisionGroupManager;
+import org.terasology.world.WorldProvider;
 import org.terasology.world.biomes.BiomeManager;
 import org.terasology.world.block.BlockManager;
 
@@ -120,6 +122,7 @@ public class ModuleTestingEnvironment {
         engineEntityManager = context.get(EngineEntityManager.class);
         BlockManager mockBlockManager = context.get(BlockManager.class); // 'mock' added to avoid hiding a field
         BiomeManager biomeManager = context.get(BiomeManager.class);
+        context.put(WorldProvider.class, new SimpleWorldProvider(context));
 
         Path savePath = PathManager.getInstance().getSavePath("world1");
         context.put(StorageManager.class, new ReadWriteStorageManager(savePath, moduleManager.getEnvironment(),
