@@ -25,6 +25,8 @@ import org.terasology.entitySystem.prefab.Prefab;
 import org.terasology.moduletestingenvironment.fixtures.DummyComponent;
 import org.terasology.moduletestingenvironment.fixtures.DummyEvent;
 import org.terasology.utilities.Assets;
+import org.terasology.world.block.Block;
+import org.terasology.world.block.BlockManager;
 
 import java.util.Set;
 
@@ -36,8 +38,16 @@ public class AssetLoadingTest extends ModuleTestingEnvironment {
     }
 
     @Test
-    public void simpleLoadingTest() throws InterruptedException {
+    public void blockPrefabLoadingTest() {
+        Block block = context.get(BlockManager.class).getBlock("core:dirt");
+        Assert.assertNotNull(block);
+        Assert.assertEquals(9, block.getHardness());
+        Assert.assertEquals("Dirt", block.getDisplayName());
+    }
+
+    @Test
+    public void simpleLoadingTest() {
         AssetManager assetManager = context.get(AssetManager.class);
-        Assert.assertNotNull(assetManager.getAsset("Core:axe", Prefab.class).get());
+        Assert.assertNotNull(assetManager.getAsset("core:axe", Prefab.class).get());
     }
 }
