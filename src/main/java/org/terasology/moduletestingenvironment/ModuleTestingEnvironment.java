@@ -25,7 +25,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.HeadlessEnvironment;
 import org.terasology.TerasologyTestingEnvironment;
+import org.terasology.assets.ResourceUrn;
 import org.terasology.assets.management.AssetManager;
+import org.terasology.assets.management.AssetTypeManager;
 import org.terasology.audio.AudioManager;
 import org.terasology.config.Config;
 import org.terasology.context.Context;
@@ -39,6 +41,7 @@ import org.terasology.engine.paths.PathManager;
 import org.terasology.engine.subsystem.DisplayDevice;
 import org.terasology.engine.subsystem.headless.device.HeadlessDisplayDevice;
 import org.terasology.entitySystem.entity.internal.EngineEntityManager;
+import org.terasology.entitySystem.prefab.Prefab;
 import org.terasology.game.Game;
 import org.terasology.logic.console.Console;
 import org.terasology.logic.console.ConsoleImpl;
@@ -135,18 +138,15 @@ public class ModuleTestingEnvironment {
 //        NUIManager nuiManager = new NUIManagerInternal(canvasRenderer, context);
 //        context.put(NUIManager.class, nuiManager);
 
-        componentSystemManager = new ComponentSystemManager(context);
-        componentSystemManager.loadSystems(moduleManager.getEnvironment(), NetworkMode.DEDICATED_SERVER);
-        context.put(ComponentSystemManager.class, componentSystemManager);
         LoadPrefabs prefabLoadStep = new LoadPrefabs(context);
 
-
-        boolean complete = false;
         prefabLoadStep.begin();
-        while (!complete) {
-            complete = prefabLoadStep.step();
-        }
-        context.get(ComponentSystemManager.class).initialise();
+        while (!prefabLoadStep.step()) { /* do nothing */ }
+
+        componentSystemManager = new ComponentSystemManager(context);
+        componentSystemManager.loadSystems(moduleManager.getEnvironment(), NetworkMode.DEDICATED_SERVER);
+        componentSystemManager.initialise();
+        context.put(ComponentSystemManager.class, componentSystemManager);
         context.put(Console.class, new ConsoleImpl(context));
     }
 

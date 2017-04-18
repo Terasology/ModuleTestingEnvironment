@@ -18,6 +18,7 @@ package org.terasology.moduletestingenvironment.worldproviders;
 import com.google.api.client.util.Maps;
 import org.terasology.context.Context;
 import org.terasology.engine.SimpleUri;
+import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.entitySystem.entity.EntityRef;
 import org.terasology.math.Region3i;
 import org.terasology.math.geom.Vector3f;
@@ -53,7 +54,7 @@ public class SimpleWorldProvider implements WorldProvider {
 
     @Override
     public EntityRef getWorldEntity() {
-        return null;
+        return context.get(EntityManager.class).create();
     }
 
     @Override
@@ -198,12 +199,12 @@ public class SimpleWorldProvider implements WorldProvider {
 
     @Override
     public Block getBlock(Vector3f pos) {
-        return null;
+        return getBlock((int) pos.x, (int) pos.y, (int) pos.z);
     }
 
     @Override
     public Block getBlock(Vector3i pos) {
-        return null;
+        return getBlock((int) pos.x, (int) pos.y, (int) pos.z);
     }
 
     @Override
