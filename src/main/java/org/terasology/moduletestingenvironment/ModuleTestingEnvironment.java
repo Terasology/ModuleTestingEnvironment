@@ -19,140 +19,71 @@ import com.google.common.collect.Sets;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.nio.file.ShrinkWrapFileSystems;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terasology.HeadlessEnvironment;
 import org.terasology.TerasologyTestingEnvironment;
-import org.terasology.assets.ResourceUrn;
-import org.terasology.assets.management.AssetManager;
-import org.terasology.assets.management.AssetTypeManager;
-import org.terasology.audio.AudioManager;
-import org.terasology.config.Config;
 import org.terasology.context.Context;
-import org.terasology.engine.ComponentSystemManager;
-import org.terasology.engine.EngineTime;
-import org.terasology.engine.Time;
-import org.terasology.engine.bootstrap.EntitySystemSetupUtil;
-import org.terasology.engine.modes.loadProcesses.LoadPrefabs;
-import org.terasology.engine.module.ModuleManager;
+import org.terasology.engine.GameEngine;
+import org.terasology.engine.StateChangeSubscriber;
+import org.terasology.engine.TerasologyEngine;
+import org.terasology.engine.TerasologyEngineBuilder;
+import org.terasology.engine.modes.StateIngame;
 import org.terasology.engine.paths.PathManager;
-import org.terasology.engine.subsystem.DisplayDevice;
-import org.terasology.engine.subsystem.headless.device.HeadlessDisplayDevice;
-import org.terasology.entitySystem.entity.internal.EngineEntityManager;
-import org.terasology.entitySystem.prefab.Prefab;
-import org.terasology.game.Game;
-import org.terasology.logic.console.Console;
-import org.terasology.logic.console.ConsoleImpl;
-import org.terasology.moduletestingenvironment.worldproviders.SimpleWorldProvider;
-import org.terasology.naming.Name;
-import org.terasology.network.NetworkMode;
-import org.terasology.network.NetworkSystem;
-import org.terasology.network.internal.NetworkSystemImpl;
-import org.terasology.persistence.StorageManager;
-import org.terasology.persistence.internal.ReadWriteStorageManager;
-import org.terasology.physics.CollisionGroupManager;
-import org.terasology.world.WorldProvider;
-import org.terasology.world.biomes.BiomeManager;
-import org.terasology.world.block.BlockManager;
+import org.terasology.engine.subsystem.headless.HeadlessAudio;
+import org.terasology.engine.subsystem.headless.HeadlessGraphics;
+import org.terasology.engine.subsystem.headless.HeadlessInput;
+import org.terasology.engine.subsystem.headless.HeadlessTimer;
+import org.terasology.engine.subsystem.headless.mode.HeadlessStateChangeListener;
+import org.terasology.registry.CoreRegistry;
 
 import java.nio.file.FileSystem;
-import java.nio.file.Path;
 import java.util.Set;
 
-import static org.mockito.Mockito.mock;
-
-/**
- * Provides a complete testing environment for modules, including assets and a world provider
- *
- * Unlike the TerasologyTestingEnvironment, assets are made available as normal within the engine. Modules are loaded automatically, component systems are created and registered, etc.
- *
- * Additionally, helpers have been provided to perform common testing manipulations, and some features have been mocked to facilitate easy testing
- *
- */
-
 public class ModuleTestingEnvironment {
-    protected Context context;
     private static final Logger logger = LoggerFactory.getLogger(TerasologyTestingEnvironment.class);
-
-    private BlockManager blockManager;
-    private Config config;
-    private AudioManager audioManager;
-    private CollisionGroupManager collisionGroupManager;
-    private ModuleManager moduleManager;
-    private AssetManager assetManager;
-
-    private static HeadlessEnvironment env;
-
-    private EngineEntityManager engineEntityManager;
-    private ComponentSystemManager componentSystemManager;
-    protected EngineTime mockTime;
+    private boolean doneLoading;
+    protected TerasologyEngine host;
+    protected Context hostContext;
 
     @Before
     public void setup() throws Exception {
         final JavaArchive homeArchive = ShrinkWrap.create(JavaArchive.class);
         final FileSystem vfs = ShrinkWrapFileSystems.newFileSystem(homeArchive);
         PathManager.getInstance().useOverrideHomePath(vfs.getPath(""));
-        /*
-         * Create at least for each class a new headless environemnt as it is fast and prevents side effects
-         * (Reusing a headless environment after other tests have modified the core registry isn't really clean)
-         */
 
-        Set<Name> dependencies = Sets.newHashSet();
-        for(String moduleName : getDependencies()) {
-            dependencies.add(new Name(moduleName));
-        }
-        env = new HeadlessEnvironment(dependencies.toArray(new Name[dependencies.size()]));
+        TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder();
+        terasologyEngineBuilder
+                .add(new HeadlessGraphics())
+                .add(new HeadlessTimer())
+                .add(new HeadlessAudio())
+                .add(new HeadlessInput());
 
-        context = env.getContext();
-        assetManager = context.get(AssetManager.class);
-        blockManager = context.get(BlockManager.class);
-        config = context.get(Config.class);
-        audioManager = context.get(AudioManager.class);
-        collisionGroupManager = context.get(CollisionGroupManager.class);
-        moduleManager = context.get(ModuleManager.class);
+        TerasologyEngine terasologyEngine = terasologyEngineBuilder.build();
+        host = terasologyEngine;
+        CoreRegistry.put(GameEngine.class, terasologyEngine);
+        terasologyEngine.initialize();
+        terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
+        terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies()));
 
-        context.put(ModuleManager.class, moduleManager);
+        doneLoading = false;
+        terasologyEngine.subscribeToStateChange(new StateChangeSubscriber() {
+            @Override
+            public void onStateChange() {
+                if(terasologyEngine.getState() instanceof StateIngame) {
+                    hostContext = ((StateIngame) terasologyEngine.getState()).getContext();
+                    doneLoading = true;
+                }
+            }
+        });
 
-        mockTime = mock(EngineTime.class);
-        context.put(Time.class, mockTime);
-        NetworkSystemImpl networkSystem = new NetworkSystemImpl(mockTime, context);
-        context.put(Game.class, new Game());
-        context.put(NetworkSystem.class, networkSystem);
-        EntitySystemSetupUtil.addReflectionBasedLibraries(context);
-        EntitySystemSetupUtil.addEntityManagementRelatedClasses(context);
-        engineEntityManager = context.get(EngineEntityManager.class);
-        BlockManager mockBlockManager = context.get(BlockManager.class); // 'mock' added to avoid hiding a field
-        BiomeManager biomeManager = context.get(BiomeManager.class);
-        context.put(WorldProvider.class, new SimpleWorldProvider(context));
-
-        Path savePath = PathManager.getInstance().getSavePath("world1");
-        context.put(StorageManager.class, new ReadWriteStorageManager(savePath, moduleManager.getEnvironment(),
-                engineEntityManager, mockBlockManager, biomeManager));
-
-        DisplayDevice displayDevice = new HeadlessDisplayDevice();
-        context.put(DisplayDevice.class, displayDevice);
-//
-//        CanvasRenderer canvasRenderer = new HeadlessCanvasRenderer();
-//        NUIManager nuiManager = new NUIManagerInternal(canvasRenderer, context);
-//        context.put(NUIManager.class, nuiManager);
-
-        LoadPrefabs prefabLoadStep = new LoadPrefabs(context);
-
-        prefabLoadStep.begin();
-        while (!prefabLoadStep.step()) { /* do nothing */ }
-
-        componentSystemManager = new ComponentSystemManager(context);
-        componentSystemManager.loadSystems(moduleManager.getEnvironment(), NetworkMode.DEDICATED_SERVER);
-        componentSystemManager.initialise();
-        context.put(ComponentSystemManager.class, componentSystemManager);
-        context.put(Console.class, new ConsoleImpl(context));
+        while(!doneLoading && terasologyEngine.tick()) { /* do nothing */ }
     }
 
-    @AfterClass
-    public static void tearDown() throws Exception {
-        env.close();
+    @After
+    public void tearDown() throws Exception {
+        host.shutdown();
     }
 
     /**
@@ -161,9 +92,5 @@ public class ModuleTestingEnvironment {
      */
     public Set<String> getDependencies() {
         return Sets.newHashSet("engine");
-    }
-
-    public EngineEntityManager getEntityManager() {
-        return engineEntityManager;
     }
 }

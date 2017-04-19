@@ -17,14 +17,9 @@ package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Sets;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.terasology.assets.management.AssetManager;
-import org.terasology.entitySystem.entity.EntityRef;
 import org.terasology.entitySystem.prefab.Prefab;
-import org.terasology.moduletestingenvironment.fixtures.DummyComponent;
-import org.terasology.moduletestingenvironment.fixtures.DummyEvent;
-import org.terasology.utilities.Assets;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockManager;
 
@@ -39,7 +34,7 @@ public class AssetLoadingTest extends ModuleTestingEnvironment {
 
     @Test
     public void blockPrefabLoadingTest() {
-        Block block = context.get(BlockManager.class).getBlock("core:dirt");
+        Block block = hostContext.get(BlockManager.class).getBlock("core:dirt");
         Assert.assertNotNull(block);
         Assert.assertEquals(9, block.getHardness());
         Assert.assertEquals("Dirt", block.getDisplayName());
@@ -47,7 +42,7 @@ public class AssetLoadingTest extends ModuleTestingEnvironment {
 
     @Test
     public void simpleLoadingTest() {
-        AssetManager assetManager = context.get(AssetManager.class);
+        AssetManager assetManager = hostContext.get(AssetManager.class);
         Assert.assertNotNull(assetManager.getAsset("core:axe", Prefab.class).get());
     }
 }

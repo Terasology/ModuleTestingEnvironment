@@ -17,7 +17,6 @@ package org.terasology.moduletestingenvironment.worldproviders;
 
 import com.google.api.client.util.Maps;
 import org.terasology.context.Context;
-import org.terasology.engine.SimpleUri;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.entitySystem.entity.EntityRef;
 import org.terasology.math.Region3i;
@@ -28,11 +27,8 @@ import org.terasology.world.WorldProvider;
 import org.terasology.world.biomes.Biome;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockManager;
-import org.terasology.world.chunks.internal.GeneratingChunkProvider;
 import org.terasology.world.internal.ChunkViewCore;
 import org.terasology.world.internal.WorldInfo;
-import org.terasology.world.internal.WorldProviderCore;
-import org.terasology.world.internal.WorldProviderCoreImpl;
 import org.terasology.world.liquid.LiquidData;
 import org.terasology.world.time.WorldTime;
 

@@ -19,8 +19,8 @@ import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.entitySystem.entity.EntityRef;
-import org.terasology.moduletestingenvironment.ModuleTestingEnvironment;
 import org.terasology.moduletestingenvironment.fixtures.DummyComponent;
 import org.terasology.moduletestingenvironment.fixtures.DummyEvent;
 
@@ -31,12 +31,12 @@ public class ComponentSystemTest extends ModuleTestingEnvironment {
 
     @Override
     public Set<String> getDependencies() {
-        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
+        return Sets.newHashSet("engine", "Core", "ModuleTestingEnvironment");
     }
 
     @Before
     public void before() {
-        entity = getEntityManager().create(new DummyComponent());
+        entity = hostContext.get(EntityManager.class).create(new DummyComponent());
     }
 
     @Test
