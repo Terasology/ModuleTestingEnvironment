@@ -36,7 +36,13 @@ import org.terasology.engine.subsystem.headless.HeadlessGraphics;
 import org.terasology.engine.subsystem.headless.HeadlessInput;
 import org.terasology.engine.subsystem.headless.HeadlessTimer;
 import org.terasology.engine.subsystem.headless.mode.HeadlessStateChangeListener;
+import org.terasology.entitySystem.entity.EntityManager;
+import org.terasology.logic.location.LocationComponent;
+import org.terasology.math.geom.Vector3f;
+import org.terasology.math.geom.Vector3i;
 import org.terasology.registry.CoreRegistry;
+import org.terasology.world.RelevanceRegionComponent;
+import org.terasology.world.WorldProvider;
 
 import java.nio.file.FileSystem;
 import java.util.Set;
@@ -85,6 +91,33 @@ public class ModuleTestingEnvironment {
     public void tearDown() throws Exception {
         host.shutdown();
     }
+
+    /**
+     * Creates a dummy entity with RelevanceRegion component to force a chunk's generation and availability.
+     * Blocks while waiting for the chunk to become loaded
+     *
+     * @param blockPos the block position of the dummy entity. Only the chunk containing this position will be available
+     */
+    public void forceAndWaitForGeneration(Vector3i blockPos) {
+        // we need to add an entity with RegionRelevance in order to get a chunk generated
+        LocationComponent locationComponent = new LocationComponent();
+        locationComponent.setWorldPosition(blockPos.toVector3f());
+
+        // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
+        RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
+        relevanceRegionComponent.distance = new Vector3i(2,2,2);
+
+        hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
+
+        while(host.tick()) {
+            Thread.yield();
+            String s = hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString();
+            if(!s.equalsIgnoreCase("engine:unloaded")) {
+                break;
+            }
+        }
+    }
+
 
     /**
      * Override this to change which modules must be loaded for the environment

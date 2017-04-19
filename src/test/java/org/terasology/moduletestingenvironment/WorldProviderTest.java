@@ -40,23 +40,7 @@ public class WorldProviderTest extends ModuleTestingEnvironment {
         WorldProvider worldProvider = hostContext.get(WorldProvider.class);
         BlockManager blockManager = hostContext.get(BlockManager.class);
 
-        // we need to add an entity with RegionRelevance in order to get a chunk generated
-        LocationComponent locationComponent = new LocationComponent();
-        locationComponent.setWorldPosition(new Vector3f(0,0,0));
-
-        // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
-        RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
-        relevanceRegionComponent.distance = new Vector3i(2,2,2);
-
-        hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
-
-        while(host.tick()) {
-            Thread.yield();
-            String s = worldProvider.getBlock(0,0,0).getURI().toString();
-            if(!s.equalsIgnoreCase("engine:unloaded")) {
-                break;
-            }
-        }
+        forceAndWaitForGeneration(Vector3i.zero());
 
         // this will change if the worldgenerator changes or the seed is altered, the main point is that this is a real
         // block type and not engine:unloaded
