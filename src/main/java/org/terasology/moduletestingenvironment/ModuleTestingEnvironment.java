@@ -111,13 +111,7 @@ public class ModuleTestingEnvironment {
 
         hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
 
-        while(host.tick()) {
-            Thread.yield();
-            String s = hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString();
-            if(!s.equalsIgnoreCase("engine:unloaded")) {
-                break;
-            }
-        }
+        runWhile(()-> hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString().equalsIgnoreCase("engine:unloaded"));
     }
 
     /**
