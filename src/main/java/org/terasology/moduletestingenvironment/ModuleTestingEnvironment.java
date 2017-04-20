@@ -46,6 +46,8 @@ import org.terasology.world.WorldProvider;
 
 import java.nio.file.FileSystem;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class ModuleTestingEnvironment {
     private static final Logger logger = LoggerFactory.getLogger(TerasologyTestingEnvironment.class);
@@ -115,6 +117,23 @@ public class ModuleTestingEnvironment {
             if(!s.equalsIgnoreCase("engine:unloaded")) {
                 break;
             }
+        }
+    }
+
+    /**
+     * Runs tick() on the engine until f evaluates to true
+     */
+    public void runUntil(Supplier<Boolean> f) {
+        runWhile(()-> !f.get());
+    }
+
+
+    /**
+     * Runs tick() on the engine while f evaluates to true
+     */
+    public void runWhile(Supplier<Boolean> f) {
+        while(host.tick() && f.get()) {
+            Thread.yield();
         }
     }
 
