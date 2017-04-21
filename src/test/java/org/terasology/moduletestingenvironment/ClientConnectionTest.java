@@ -18,9 +18,11 @@ package org.terasology.moduletestingenvironment;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Test;
+import org.terasology.context.Context;
 import org.terasology.engine.TerasologyEngine;
 import org.terasology.engine.modes.StateIngame;
 
+import java.util.List;
 import java.util.Set;
 
 public class ClientConnectionTest extends ModuleTestingEnvironment {
@@ -31,8 +33,11 @@ public class ClientConnectionTest extends ModuleTestingEnvironment {
 
     @Test
     public void testClientConnection() {
-        TerasologyEngine client = createClient();
-        connectToHost(client);
-        Assert.assertEquals(StateIngame.class, client.getState().getClass());
+        Context clientContext = createClient();
+        List<TerasologyEngine> engines = getEngines();
+        Assert.assertEquals(2, engines.size());
+        for(TerasologyEngine engine : engines) {
+            Assert.assertEquals(StateIngame.class, engine.getState().getClass());
+        }
     }
 }

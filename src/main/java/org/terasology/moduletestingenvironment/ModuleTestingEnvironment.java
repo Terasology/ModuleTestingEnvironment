@@ -50,6 +50,7 @@ import org.terasology.engine.subsystem.lwjgl.LwjglInput;
 import org.terasology.engine.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.subsystem.openvr.OpenVRInput;
 import org.terasology.entitySystem.entity.EntityManager;
+import org.terasology.entitySystem.stubs.MappedContainerComponent;
 import org.terasology.logic.location.LocationComponent;
 import org.terasology.math.geom.Vector3f;
 import org.terasology.math.geom.Vector3i;
@@ -68,8 +69,8 @@ import java.util.function.Supplier;
 public class ModuleTestingEnvironment {
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
     private boolean doneLoading;
-    protected TerasologyEngine host;
-    protected Context hostContext;
+    private TerasologyEngine host;
+    private Context hostContext;
     private List<TerasologyEngine> engines = Lists.newArrayList();
 
     @Before
@@ -80,7 +81,19 @@ public class ModuleTestingEnvironment {
 
     @After
     public void tearDown() throws Exception {
-        host.shutdown();
+        engines.forEach(TerasologyEngine::shutdown);
+        engines.forEach(TerasologyEngine::cleanup);
+        engines.clear();
+        host = null;
+        hostContext = null;
+    }
+
+    /**
+     * Override this to change which modules must be loaded for the environment
+     * @return
+     */
+    public Set<String> getDependencies() {
+        return Sets.newHashSet("engine");
     }
 
     /**
@@ -89,7 +102,7 @@ public class ModuleTestingEnvironment {
      *
      * @param blockPos the block position of the dummy entity. Only the chunk containing this position will be available
      */
-    public void forceAndWaitForGeneration(Vector3i blockPos) {
+    protected void forceAndWaitForGeneration(Vector3i blockPos) {
         // we need to add an entity with RegionRelevance in order to get a chunk generated
         LocationComponent locationComponent = new LocationComponent();
         locationComponent.setWorldPosition(blockPos.toVector3f());
@@ -106,7 +119,7 @@ public class ModuleTestingEnvironment {
     /**
      * Runs tick() on the engine until f evaluates to true
      */
-    public void runUntil(Supplier<Boolean> f) {
+    protected void runUntil(Supplier<Boolean> f) {
         runWhile(()-> !f.get());
     }
 
@@ -114,23 +127,21 @@ public class ModuleTestingEnvironment {
     /**
      * Runs tick() on the engine while f evaluates to true
      */
-    public void runWhile(Supplier<Boolean> f) {
+    protected void runWhile(Supplier<Boolean> f) {
         while(f.get()) {
             Thread.yield();
             for(TerasologyEngine terasologyEngine : engines) {
-//                terasologyEngine.switchToGameEnvironment();
                 terasologyEngine.tick();
             }
         }
     }
 
+    protected List<TerasologyEngine> getEngines() {
+        return Lists.newArrayList(engines);
+    }
 
-    /**
-     * Override this to change which modules must be loaded for the environment
-     * @return
-     */
-    public Set<String> getDependencies() {
-        return Sets.newHashSet("engine");
+    protected Context getHostContext() {
+        return hostContext;
     }
 
     private TerasologyEngine createHeadlessEngine() {
@@ -173,13 +184,14 @@ public class ModuleTestingEnvironment {
         return terasologyEngine;
     }
 
-    public TerasologyEngine createClient() {
+    protected Context createClient() {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.changeState(new StateMainMenu());
-        return terasologyEngine;
+        connectToHost(terasologyEngine);
+        return terasologyEngine.getState().getContext();
     }
 
-    public TerasologyEngine createHost() {
+    private TerasologyEngine createHost() {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.getFromEngineContext(Config.class).getSystem().setWriteSaveGamesEnabled(false);
         terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
@@ -190,7 +202,7 @@ public class ModuleTestingEnvironment {
             @Override
             public void onStateChange() {
                 if(terasologyEngine.getState() instanceof StateIngame) {
-                    hostContext = ((StateIngame) terasologyEngine.getState()).getContext();
+                    hostContext = terasologyEngine.getState().getContext();
                     doneLoading = true;
                 } else if(terasologyEngine.getState() instanceof StateLoading) {
                     CoreRegistry.put(GameEngine.class, terasologyEngine);
@@ -202,7 +214,7 @@ public class ModuleTestingEnvironment {
         return terasologyEngine;
     }
 
-    public void connectToHost(TerasologyEngine client) {
+    private void connectToHost(TerasologyEngine client) {
         CoreRegistry.put(Config.class, client.getFromEngineContext(Config.class));
         JoinStatus joinStatus = null;
         try {

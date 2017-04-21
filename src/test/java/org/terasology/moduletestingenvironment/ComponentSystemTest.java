@@ -36,7 +36,7 @@ public class ComponentSystemTest extends ModuleTestingEnvironment {
 
     @Before
     public void before() {
-        entity = hostContext.get(EntityManager.class).create(new DummyComponent());
+        entity = getHostContext().get(EntityManager.class).create(new DummyComponent());
     }
 
     @Test

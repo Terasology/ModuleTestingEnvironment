@@ -37,8 +37,8 @@ public class WorldProviderTest extends ModuleTestingEnvironment {
 
     @Test
     public void defaultWorldSetBlockTest() {
-        WorldProvider worldProvider = hostContext.get(WorldProvider.class);
-        BlockManager blockManager = hostContext.get(BlockManager.class);
+        WorldProvider worldProvider = getHostContext().get(WorldProvider.class);
+        BlockManager blockManager = getHostContext().get(BlockManager.class);
 
         forceAndWaitForGeneration(Vector3i.zero());
 

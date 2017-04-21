@@ -34,7 +34,7 @@ public class AssetLoadingTest extends ModuleTestingEnvironment {
 
     @Test
     public void blockPrefabLoadingTest() {
-        Block block = hostContext.get(BlockManager.class).getBlock("core:dirt");
+        Block block = getHostContext().get(BlockManager.class).getBlock("core:dirt");
         Assert.assertNotNull(block);
         Assert.assertEquals(9, block.getHardness());
         Assert.assertEquals("Dirt", block.getDisplayName());
@@ -42,7 +42,7 @@ public class AssetLoadingTest extends ModuleTestingEnvironment {
 
     @Test
     public void simpleLoadingTest() {
-        AssetManager assetManager = hostContext.get(AssetManager.class);
+        AssetManager assetManager = getHostContext().get(AssetManager.class);
         Assert.assertNotNull(assetManager.getAsset("core:axe", Prefab.class).get());
     }
 }
