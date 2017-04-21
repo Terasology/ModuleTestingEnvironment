@@ -17,7 +17,6 @@ package org.terasology.moduletestingenvironment;
 
 import com.google.api.client.util.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.Service;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.nio.file.ShrinkWrapFileSystems;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -25,15 +24,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terasology.TerasologyTestingEnvironment;
 import org.terasology.config.Config;
 import org.terasology.context.Context;
 import org.terasology.engine.GameEngine;
 import org.terasology.engine.StateChangeSubscriber;
 import org.terasology.engine.TerasologyEngine;
 import org.terasology.engine.TerasologyEngineBuilder;
-import org.terasology.engine.bootstrap.EnvironmentSwitchHandler;
-import org.terasology.engine.modes.GameState;
 import org.terasology.engine.modes.StateIngame;
 import org.terasology.engine.modes.StateLoading;
 import org.terasology.engine.modes.StateMainMenu;
@@ -50,9 +46,7 @@ import org.terasology.engine.subsystem.lwjgl.LwjglInput;
 import org.terasology.engine.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.subsystem.openvr.OpenVRInput;
 import org.terasology.entitySystem.entity.EntityManager;
-import org.terasology.entitySystem.stubs.MappedContainerComponent;
 import org.terasology.logic.location.LocationComponent;
-import org.terasology.math.geom.Vector3f;
 import org.terasology.math.geom.Vector3i;
 import org.terasology.network.JoinStatus;
 import org.terasology.network.NetworkSystem;
@@ -63,8 +57,38 @@ import org.terasology.world.WorldProvider;
 import java.nio.file.FileSystem;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
+
+/**
+ * Base class for tests involving full {@link TerasologyEngine} instances. View the tests included in this module for
+ * simple usage examples
+ * <p>
+ * <h2>Introduction</h2> This class will create a new host engine for each @Test method. The
+ * in-game {@link Context} for this engine can be accessed via {@link #getHostContext()}. The result of this getter is
+ * equivalent to the CoreRegistry available to module code at runtime. However, it is very important that you do not use
+ * CoreRegistry in your test code, as this is manipulated by the test environment to allow multiple instances of the
+ * engine to peacefully coexist. You should always use the returned context reference to manipulate or inspect the
+ * CoreRegistry of a given engine instance.
+ * <p>
+ * <h2>Client Engine Instances</h2> Client instances can be easily created via
+ * {@link #createClient()} which returns the in-game context of the created engine instance. When this method returns,
+ * the client will be in the {@link StateIngame} state and connected to the host. Currently all engine instances are
+ * headless, though it is possible to use headed engines in the future.
+ * <p>
+ * Engines can be run while a condition is true via {@link #runWhile(Supplier)} <br>{@code runWhile(()-> true);}
+ * <p>
+ * or conversely run until a condition is true via {@link #runUntil(Supplier)} <br>{@code runUntil(()-> false);}
+ * <p>
+ * <h2>Specifying Dependencies</h2> By default the environment will load only the engine itself. In order to load your
+ * own module code, you must override {@link #getDependencies()} in your test subclass.
+ * <pre>
+ * {@literal
+ * public Set<String> getDependencies() {
+ *     return Sets.newHashSet("engine", "ModuleTestingEnvironment");
+ * }
+ * }
+ * </pre>
+ */
 
 public class ModuleTestingEnvironment {
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
@@ -90,7 +114,8 @@ public class ModuleTestingEnvironment {
 
     /**
      * Override this to change which modules must be loaded for the environment
-     * @return
+     *
+     * @return The set of module names to load
      */
     public Set<String> getDependencies() {
         return Sets.newHashSet("engine");
@@ -100,7 +125,8 @@ public class ModuleTestingEnvironment {
      * Creates a dummy entity with RelevanceRegion component to force a chunk's generation and availability.
      * Blocks while waiting for the chunk to become loaded
      *
-     * @param blockPos the block position of the dummy entity. Only the chunk containing this position will be available
+     * @param blockPos the block position of the dummy entity. Only the chunk containing this position will be
+     *                 available
      */
     protected void forceAndWaitForGeneration(Vector3i blockPos) {
         // we need to add an entity with RegionRelevance in order to get a chunk generated
@@ -109,18 +135,18 @@ public class ModuleTestingEnvironment {
 
         // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
         RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
-        relevanceRegionComponent.distance = new Vector3i(2,2,2);
+        relevanceRegionComponent.distance = new Vector3i(2, 2, 2);
 
         hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
 
-        runWhile(()-> hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString().equalsIgnoreCase("engine:unloaded"));
+        runWhile(() -> hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString().equalsIgnoreCase("engine:unloaded"));
     }
 
     /**
      * Runs tick() on the engine until f evaluates to true
      */
     protected void runUntil(Supplier<Boolean> f) {
-        runWhile(()-> !f.get());
+        runWhile(() -> !f.get());
     }
 
 
@@ -128,9 +154,9 @@ public class ModuleTestingEnvironment {
      * Runs tick() on the engine while f evaluates to true
      */
     protected void runWhile(Supplier<Boolean> f) {
-        while(f.get()) {
+        while (f.get()) {
             Thread.yield();
-            for(TerasologyEngine terasologyEngine : engines) {
+            for (TerasologyEngine terasologyEngine : engines) {
                 terasologyEngine.tick();
             }
         }
@@ -201,16 +227,16 @@ public class ModuleTestingEnvironment {
         terasologyEngine.subscribeToStateChange(new StateChangeSubscriber() {
             @Override
             public void onStateChange() {
-                if(terasologyEngine.getState() instanceof StateIngame) {
+                if (terasologyEngine.getState() instanceof StateIngame) {
                     hostContext = terasologyEngine.getState().getContext();
                     doneLoading = true;
-                } else if(terasologyEngine.getState() instanceof StateLoading) {
+                } else if (terasologyEngine.getState() instanceof StateLoading) {
                     CoreRegistry.put(GameEngine.class, terasologyEngine);
                 }
             }
         });
 
-        while(!doneLoading && terasologyEngine.tick()) { /* do nothing */ }
+        while (!doneLoading && terasologyEngine.tick()) { /* do nothing */ }
         return terasologyEngine;
     }
 
@@ -226,6 +252,6 @@ public class ModuleTestingEnvironment {
         client.changeState(new StateLoading(joinStatus));
         CoreRegistry.put(GameEngine.class, client);
 
-        runUntil(() ->client.getState() instanceof StateIngame);
+        runUntil(() -> client.getState() instanceof StateIngame);
     }
 }
