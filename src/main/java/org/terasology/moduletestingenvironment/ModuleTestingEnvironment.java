@@ -15,7 +15,9 @@
  */
 package org.terasology.moduletestingenvironment;
 
+import com.google.api.client.util.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Service;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.nio.file.ShrinkWrapFileSystems;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -24,69 +26,56 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.TerasologyTestingEnvironment;
+import org.terasology.config.Config;
 import org.terasology.context.Context;
 import org.terasology.engine.GameEngine;
 import org.terasology.engine.StateChangeSubscriber;
 import org.terasology.engine.TerasologyEngine;
 import org.terasology.engine.TerasologyEngineBuilder;
+import org.terasology.engine.bootstrap.EnvironmentSwitchHandler;
+import org.terasology.engine.modes.GameState;
 import org.terasology.engine.modes.StateIngame;
+import org.terasology.engine.modes.StateLoading;
+import org.terasology.engine.modes.StateMainMenu;
 import org.terasology.engine.paths.PathManager;
+import org.terasology.engine.subsystem.EngineSubsystem;
 import org.terasology.engine.subsystem.headless.HeadlessAudio;
 import org.terasology.engine.subsystem.headless.HeadlessGraphics;
 import org.terasology.engine.subsystem.headless.HeadlessInput;
 import org.terasology.engine.subsystem.headless.HeadlessTimer;
 import org.terasology.engine.subsystem.headless.mode.HeadlessStateChangeListener;
+import org.terasology.engine.subsystem.lwjgl.LwjglAudio;
+import org.terasology.engine.subsystem.lwjgl.LwjglGraphics;
+import org.terasology.engine.subsystem.lwjgl.LwjglInput;
+import org.terasology.engine.subsystem.lwjgl.LwjglTimer;
+import org.terasology.engine.subsystem.openvr.OpenVRInput;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.logic.location.LocationComponent;
 import org.terasology.math.geom.Vector3f;
 import org.terasology.math.geom.Vector3i;
+import org.terasology.network.JoinStatus;
+import org.terasology.network.NetworkSystem;
 import org.terasology.registry.CoreRegistry;
 import org.terasology.world.RelevanceRegionComponent;
 import org.terasology.world.WorldProvider;
 
 import java.nio.file.FileSystem;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class ModuleTestingEnvironment {
-    private static final Logger logger = LoggerFactory.getLogger(TerasologyTestingEnvironment.class);
+    private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
     private boolean doneLoading;
     protected TerasologyEngine host;
     protected Context hostContext;
+    private List<TerasologyEngine> engines = Lists.newArrayList();
 
     @Before
     public void setup() throws Exception {
-        final JavaArchive homeArchive = ShrinkWrap.create(JavaArchive.class);
-        final FileSystem vfs = ShrinkWrapFileSystems.newFileSystem(homeArchive);
-        PathManager.getInstance().useOverrideHomePath(vfs.getPath(""));
-
-        TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder();
-        terasologyEngineBuilder
-                .add(new HeadlessGraphics())
-                .add(new HeadlessTimer())
-                .add(new HeadlessAudio())
-                .add(new HeadlessInput());
-
-        TerasologyEngine terasologyEngine = terasologyEngineBuilder.build();
-        host = terasologyEngine;
-        CoreRegistry.put(GameEngine.class, terasologyEngine);
-        terasologyEngine.initialize();
-        terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
-        terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies()));
-
-        doneLoading = false;
-        terasologyEngine.subscribeToStateChange(new StateChangeSubscriber() {
-            @Override
-            public void onStateChange() {
-                if(terasologyEngine.getState() instanceof StateIngame) {
-                    hostContext = ((StateIngame) terasologyEngine.getState()).getContext();
-                    doneLoading = true;
-                }
-            }
-        });
-
-        while(!doneLoading && terasologyEngine.tick()) { /* do nothing */ }
+        host = createHost();
+        CoreRegistry.put(GameEngine.class, host);
     }
 
     @After
@@ -126,8 +115,12 @@ public class ModuleTestingEnvironment {
      * Runs tick() on the engine while f evaluates to true
      */
     public void runWhile(Supplier<Boolean> f) {
-        while(host.tick() && f.get()) {
+        while(f.get()) {
             Thread.yield();
+            for(TerasologyEngine terasologyEngine : engines) {
+//                terasologyEngine.switchToGameEnvironment();
+                terasologyEngine.tick();
+            }
         }
     }
 
@@ -138,5 +131,89 @@ public class ModuleTestingEnvironment {
      */
     public Set<String> getDependencies() {
         return Sets.newHashSet("engine");
+    }
+
+    private TerasologyEngine createHeadlessEngine() {
+        TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder();
+        terasologyEngineBuilder
+                .add(new HeadlessGraphics())
+                .add(new HeadlessTimer())
+                .add(new HeadlessAudio())
+                .add(new HeadlessInput());
+
+        return createEngine(terasologyEngineBuilder);
+    }
+
+    private TerasologyEngine createHeadedEngine() {
+        EngineSubsystem audio = new LwjglAudio();
+        TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder()
+                .add(audio)
+                .add(new LwjglGraphics())
+                .add(new LwjglTimer())
+                .add(new LwjglInput())
+                .add(new OpenVRInput());
+
+        return createEngine(terasologyEngineBuilder);
+    }
+
+    private TerasologyEngine createEngine(TerasologyEngineBuilder terasologyEngineBuilder) {
+        try {
+            final JavaArchive homeArchive = ShrinkWrap.create(JavaArchive.class);
+            final FileSystem vfs = ShrinkWrapFileSystems.newFileSystem(homeArchive);
+            PathManager.getInstance().useOverrideHomePath(vfs.getPath(""));
+        } catch (Exception e) {
+            logger.warn("Exception creating archive: {}", e);
+            return null;
+        }
+
+        TerasologyEngine terasologyEngine = terasologyEngineBuilder.build();
+        terasologyEngine.initialize();
+
+        engines.add(terasologyEngine);
+        return terasologyEngine;
+    }
+
+    public TerasologyEngine createClient() {
+        TerasologyEngine terasologyEngine = createHeadlessEngine();
+        terasologyEngine.changeState(new StateMainMenu());
+        return terasologyEngine;
+    }
+
+    public TerasologyEngine createHost() {
+        TerasologyEngine terasologyEngine = createHeadlessEngine();
+        terasologyEngine.getFromEngineContext(Config.class).getSystem().setWriteSaveGamesEnabled(false);
+        terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
+        terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies()));
+
+        doneLoading = false;
+        terasologyEngine.subscribeToStateChange(new StateChangeSubscriber() {
+            @Override
+            public void onStateChange() {
+                if(terasologyEngine.getState() instanceof StateIngame) {
+                    hostContext = ((StateIngame) terasologyEngine.getState()).getContext();
+                    doneLoading = true;
+                } else if(terasologyEngine.getState() instanceof StateLoading) {
+                    CoreRegistry.put(GameEngine.class, terasologyEngine);
+                }
+            }
+        });
+
+        while(!doneLoading && terasologyEngine.tick()) { /* do nothing */ }
+        return terasologyEngine;
+    }
+
+    public void connectToHost(TerasologyEngine client) {
+        CoreRegistry.put(Config.class, client.getFromEngineContext(Config.class));
+        JoinStatus joinStatus = null;
+        try {
+            joinStatus = client.getFromEngineContext(NetworkSystem.class).join("localhost", 25777);
+        } catch (InterruptedException e) {
+            logger.warn("Interrupted while joining: {}", e);
+        }
+
+        client.changeState(new StateLoading(joinStatus));
+        CoreRegistry.put(GameEngine.class, client);
+
+        runUntil(() ->client.getState() instanceof StateIngame);
     }
 }
