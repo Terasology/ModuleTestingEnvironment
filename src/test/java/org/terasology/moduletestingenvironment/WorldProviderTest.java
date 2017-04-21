@@ -32,7 +32,7 @@ public class WorldProviderTest extends ModuleTestingEnvironment {
 
     @Override
     public Set<String> getDependencies() {
-        return Sets.newHashSet("engine", "Core", "ModuleTestingEnvironment");
+        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
     }
 
     @Test
@@ -44,10 +44,10 @@ public class WorldProviderTest extends ModuleTestingEnvironment {
 
         // this will change if the worldgenerator changes or the seed is altered, the main point is that this is a real
         // block type and not engine:unloaded
-        Assert.assertEquals("core:stone", worldProvider.getBlock(0, 0 ,0).getURI().toString());
+        Assert.assertEquals("engine:air", worldProvider.getBlock(0, 0 ,0).getURI().toString());
 
         // also verify that we can set and immediately get blocks from the worldprovider
-        worldProvider.setBlock(Vector3i.zero(), blockManager.getBlock("core:dirt"));
-        Assert.assertEquals("core:Dirt", worldProvider.getBlock(0, 0 ,0).getURI().toString());
+        worldProvider.setBlock(Vector3i.zero(), blockManager.getBlock("engine:unloaded"));
+        Assert.assertEquals("engine:unloaded", worldProvider.getBlock(0, 0 ,0).getURI().toString());
     }
 }

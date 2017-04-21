@@ -63,7 +63,7 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
 
         float timeOffset = 0.25f + 0.025f;  // Time at dawn + little offset to spawn in a brighter env.
         WorldInfo worldInfo = new WorldInfo(TerasologyConstants.MAIN_WORLD, gameManifest.getSeed(),
-                (long) (WorldTime.DAY_LENGTH * timeOffset), new SimpleUri("core:flat"));
+                (long) (WorldTime.DAY_LENGTH * timeOffset), new SimpleUri("moduletestingenvironment:dummy"));
         gameManifest.addWorld(worldInfo);
         return gameManifest;
     }

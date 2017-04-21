@@ -31,7 +31,7 @@ public class ComponentSystemTest extends ModuleTestingEnvironment {
 
     @Override
     public Set<String> getDependencies() {
-        return Sets.newHashSet("engine", "Core", "ModuleTestingEnvironment");
+        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
     }
 
     @Before

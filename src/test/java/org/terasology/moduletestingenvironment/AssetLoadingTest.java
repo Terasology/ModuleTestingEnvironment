@@ -29,20 +29,20 @@ public class AssetLoadingTest extends ModuleTestingEnvironment {
 
     @Override
     public Set<String> getDependencies() {
-        return Sets.newHashSet("engine", "Core", "ModuleTestingEnvironment");
+        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
     }
 
     @Test
     public void blockPrefabLoadingTest() {
-        Block block = getHostContext().get(BlockManager.class).getBlock("core:dirt");
+        Block block = getHostContext().get(BlockManager.class).getBlock("engine:air");
         Assert.assertNotNull(block);
-        Assert.assertEquals(9, block.getHardness());
-        Assert.assertEquals("Dirt", block.getDisplayName());
+        Assert.assertEquals(0, block.getHardness());
+        Assert.assertEquals("Air", block.getDisplayName());
     }
 
     @Test
     public void simpleLoadingTest() {
         AssetManager assetManager = getHostContext().get(AssetManager.class);
-        Assert.assertNotNull(assetManager.getAsset("core:axe", Prefab.class).get());
+        Assert.assertNotNull(assetManager.getAsset("engine:test", Prefab.class).get());
     }
 }

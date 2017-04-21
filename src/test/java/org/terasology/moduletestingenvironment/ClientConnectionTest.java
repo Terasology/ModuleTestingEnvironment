@@ -28,7 +28,7 @@ import java.util.Set;
 public class ClientConnectionTest extends ModuleTestingEnvironment {
     @Override
     public Set<String> getDependencies() {
-        return Sets.newHashSet("engine", "Core", "ModuleTestingEnvironment");
+        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
     }
 
     @Test
