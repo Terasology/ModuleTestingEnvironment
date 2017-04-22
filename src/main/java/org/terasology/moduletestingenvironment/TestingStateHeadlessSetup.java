@@ -34,8 +34,10 @@ import java.util.Set;
 
 public class TestingStateHeadlessSetup extends StateHeadlessSetup {
     private Collection<String> dependencies;
-    public TestingStateHeadlessSetup(Collection<String> dependencies) {
+    private String worldGeneratorUri;
+    public TestingStateHeadlessSetup(Collection<String> dependencies, String worldGeneratorUri) {
         this.dependencies = dependencies;
+        this.worldGeneratorUri = worldGeneratorUri;
     }
 
     @Override
@@ -63,7 +65,7 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
 
         float timeOffset = 0.25f + 0.025f;  // Time at dawn + little offset to spawn in a brighter env.
         WorldInfo worldInfo = new WorldInfo(TerasologyConstants.MAIN_WORLD, gameManifest.getSeed(),
-                (long) (WorldTime.DAY_LENGTH * timeOffset), new SimpleUri("moduletestingenvironment:dummy"));
+                (long) (WorldTime.DAY_LENGTH * timeOffset), new SimpleUri(worldGeneratorUri));
         gameManifest.addWorld(worldInfo);
         return gameManifest;
     }

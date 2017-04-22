@@ -63,17 +63,17 @@ import java.util.function.Supplier;
  * Base class for tests involving full {@link TerasologyEngine} instances. View the tests included in this module for
  * simple usage examples
  * <p>
- * <h2>Introduction</h2> This class will create a new host engine for each @Test method. The
- * in-game {@link Context} for this engine can be accessed via {@link #getHostContext()}. The result of this getter is
- * equivalent to the CoreRegistry available to module code at runtime. However, it is very important that you do not use
- * CoreRegistry in your test code, as this is manipulated by the test environment to allow multiple instances of the
- * engine to peacefully coexist. You should always use the returned context reference to manipulate or inspect the
- * CoreRegistry of a given engine instance.
+ * <h2>Introduction</h2> This class will create a new host engine for each @Test method. The in-game {@link Context} for
+ * this engine can be accessed via {@link #getHostContext()}. The result of this getter is equivalent to the
+ * CoreRegistry available to module code at runtime. However, it is very important that you do not use CoreRegistry in
+ * your test code, as this is manipulated by the test environment to allow multiple instances of the engine to
+ * peacefully coexist. You should always use the returned context reference to manipulate or inspect the CoreRegistry of
+ * a given engine instance.
  * <p>
- * <h2>Client Engine Instances</h2> Client instances can be easily created via
- * {@link #createClient()} which returns the in-game context of the created engine instance. When this method returns,
- * the client will be in the {@link StateIngame} state and connected to the host. Currently all engine instances are
- * headless, though it is possible to use headed engines in the future.
+ * <h2>Client Engine Instances</h2> Client instances can be easily created via {@link #createClient()} which returns the
+ * in-game context of the created engine instance. When this method returns, the client will be in the {@link
+ * StateIngame} state and connected to the host. Currently all engine instances are headless, though it is possible to
+ * use headed engines in the future.
  * <p>
  * Engines can be run while a condition is true via {@link #runWhile(Supplier)} <br>{@code runWhile(()-> true);}
  * <p>
@@ -85,6 +85,16 @@ import java.util.function.Supplier;
  * {@literal
  * public Set<String> getDependencies() {
  *     return Sets.newHashSet("engine", "ModuleTestingEnvironment");
+ * }
+ * }
+ * </pre>
+ * <h2>Specifying World Generator</h2> By default the environment will use a dummy world generator which creates
+ * nothing but air. To specify a more useful world generator you must override {@link #getWorldGeneratorUri()} in your
+ * test subclass.
+ * <pre>
+ * {@literal
+ * public String getWorldGeneratorUri() {
+ *     return "moduletestingenvironment:dummy";
  * }
  * }
  * </pre>
@@ -119,6 +129,15 @@ public class ModuleTestingEnvironment {
      */
     public Set<String> getDependencies() {
         return Sets.newHashSet("engine");
+    }
+
+    /**
+     * Override this to change which world generator to use. Defaults to a dummy generator that leaves all blocks as air
+     *
+     * @return the uri of the desired world generator
+     */
+    public String getWorldGeneratorUri() {
+        return "moduletestingenvironment:dummy";
     }
 
     /**
@@ -221,7 +240,7 @@ public class ModuleTestingEnvironment {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.getFromEngineContext(Config.class).getSystem().setWriteSaveGamesEnabled(false);
         terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
-        terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies()));
+        terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies(), getWorldGeneratorUri()));
 
         doneLoading = false;
         terasologyEngine.subscribeToStateChange(new StateChangeSubscriber() {
