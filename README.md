@@ -12,7 +12,7 @@ For complete docs please see the
 For more examples see
 [the test suite](https://github.com/kaen/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment)
 
-Here's an example taken from a Module I'm writing myself:
+Here's an example taken from the test suite:
 
 ```java
 public class MyModuleEngineTest extends ModuleTestingEnvironment {
@@ -36,17 +36,28 @@ public class MyModuleEngineTest extends ModuleTestingEnvironment {
     }
     
     @Test
-    public void testMyModule() {
-        // find sites and request they be loaded in
-        for (EntityRef site : entityManager.getEntitiesWith(SiteComponent.class)) {
-            LocationComponent locationComponent = site.getComponent(LocationComponent.class);
-            forceAndWaitForGeneration(new Vector3i(locationComponent.getWorldPosition()));
-        }
-        
-        // create a mortal and wait for it to find a settlement through behavior logic
-        EntityRef subject = entityManager.create(Assets.getPrefab("mymodule:mortal").get());
-        MortalComponent mortalComponent = subject.getComponent(MortalComponent.class);
-        runUntil(()->mortalComponent.settlement != null);
+    public void testExample() {
+        WorldProvider worldProvider = getHostContext().get(WorldProvider.class);
+        BlockManager blockManager = getHostContext().get(BlockManager.class);
+
+        // create some clients (the library connects them automatically)
+        Context clientContext1 = createClient();
+        Context clientContext2 = createClient();
+
+        // assert that both clients are known to the server
+        EntityManager hostEntityManager = getHostContext().get(EntityManager.class);
+        List<EntityRef> clientEntities = Lists.newArrayList(hostEntityManager.getEntitiesWith(ClientComponent.class));
+        Assert.assertEquals(2, clientEntities.size());
+
+        // send an event to a client's local player just for fun
+        clientContext1.get(LocalPlayer.class).getClientEntity().send(new ResetCameraEvent());
+
+        // wait for a chunk to be generated
+        forceAndWaitForGeneration(Vector3i.zero());
+
+        // set a block's type and immediately read it back
+        worldProvider.setBlock(Vector3i.zero(), blockManager.getBlock("engine:air"));
+        Assert.assertEquals("engine:air", worldProvider.getBlock(Vector3f.zero()).getURI().toString());
     }
 }
 ```
