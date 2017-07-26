@@ -56,5 +56,3 @@ class and its methods for the provided helpers.
 See [the JavaDoc](https://github.com/kaen/ModuleTestingEnvironment/blob/master/src/main/java/org/terasology/moduletestingenvironment/ModuleTestingEnvironment.java)
 or [the tests](https://github.com/kaen/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment)
 for more detailed usage information and examples.
-
-(docs) 
