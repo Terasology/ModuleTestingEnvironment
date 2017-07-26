@@ -6,6 +6,9 @@ A test helper to instantiate a full headless TerasologyEngine instance
 
 Just write a test class that `extends ModuleTestingEnvironment`.
 
+For complete docs please see the
+[documentation on Github Pages](https://kaen.github.io/ModuleTestingEnvironment/org/terasology/moduletestingenvironment/ModuleTestingEnvironment.html)
+
 By example:
 
 ```java
@@ -53,3 +56,5 @@ class and its methods for the provided helpers.
 See [the JavaDoc](https://github.com/kaen/ModuleTestingEnvironment/blob/master/src/main/java/org/terasology/moduletestingenvironment/ModuleTestingEnvironment.java)
 or [the tests](https://github.com/kaen/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment)
 for more detailed usage information and examples.
+
+(docs) 
