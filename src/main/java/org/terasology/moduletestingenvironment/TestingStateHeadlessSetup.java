@@ -16,11 +16,16 @@
 package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.terasology.config.Config;
+import org.terasology.config.ModuleConfig;
 import org.terasology.engine.SimpleUri;
 import org.terasology.engine.TerasologyConstants;
 import org.terasology.engine.module.ModuleManager;
 import org.terasology.engine.subsystem.headless.mode.StateHeadlessSetup;
 import org.terasology.game.GameManifest;
+import org.terasology.module.DependencyInfo;
 import org.terasology.module.DependencyResolver;
 import org.terasology.module.Module;
 import org.terasology.module.ResolutionResult;
@@ -33,6 +38,7 @@ import java.util.Collection;
 import java.util.Set;
 
 public class TestingStateHeadlessSetup extends StateHeadlessSetup {
+    private static Logger logger = LoggerFactory.getLogger(TestingStateHeadlessSetup.class);
     private Collection<String> dependencies;
     private String worldGeneratorUri;
     public TestingStateHeadlessSetup(Collection<String> dependencies, String worldGeneratorUri) {
@@ -51,15 +57,18 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
 
         Set<Name> dependencyNames = Sets.newHashSet();
         for(String moduleName : dependencies) {
+            logger.warn("Adding dependencies for {}", moduleName);
             dependencyNames.add(new Name(moduleName));
+            recursivelyAddModuleDependencies(dependencyNames, new Name(moduleName));
         }
 
         ResolutionResult result = resolver.resolve(dependencyNames);
         if (!result.isSuccess()) {
-            return null;
+            logger.warn("Unable to resolve modules: {}", dependencyNames);
         }
 
         for (Module module : result.getModules()) {
+            logger.warn("Loading module {} {}", module.getId(), module.getVersion());
             gameManifest.addModule(module.getId(), module.getVersion());
         }
 
@@ -68,5 +77,16 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
                 (long) (WorldTime.DAY_LENGTH * timeOffset), new SimpleUri(worldGeneratorUri));
         gameManifest.addWorld(worldInfo);
         return gameManifest;
+    }
+
+    private void recursivelyAddModuleDependencies(Set<Name> modules, Name moduleName) {
+        Module module = CoreRegistry.get(ModuleManager.class).getRegistry().getLatestModuleVersion(moduleName);
+        if (module != null) {
+            for (DependencyInfo dependencyInfo : module.getMetadata().getDependencies()) {
+                logger.warn("Adding dependency {}", dependencyInfo.getId());
+                modules.add(dependencyInfo.getId());
+                recursivelyAddModuleDependencies(modules, dependencyInfo.getId());
+            }
+        }
     }
 }
