@@ -173,7 +173,6 @@ public class ModuleTestingEnvironment {
         runWhile(() -> !f.get());
     }
 
-
     /**
      * Runs tick() on the engine while f evaluates to true
      */
@@ -184,6 +183,17 @@ public class ModuleTestingEnvironment {
                 terasologyEngine.tick();
             }
         }
+    }
+
+    /**
+     * Creates a new client and connects it to the host
+     * @return the created client's context object
+     */
+    protected Context createClient() {
+        TerasologyEngine terasologyEngine = createHeadlessEngine();
+        terasologyEngine.changeState(new StateMainMenu());
+        connectToHost(terasologyEngine);
+        return terasologyEngine.getState().getContext();
     }
 
     protected List<TerasologyEngine> getEngines() {
@@ -232,13 +242,6 @@ public class ModuleTestingEnvironment {
 
         engines.add(terasologyEngine);
         return terasologyEngine;
-    }
-
-    protected Context createClient() {
-        TerasologyEngine terasologyEngine = createHeadlessEngine();
-        terasologyEngine.changeState(new StateMainMenu());
-        connectToHost(terasologyEngine);
-        return terasologyEngine.getState().getContext();
     }
 
     private TerasologyEngine createHost() {
