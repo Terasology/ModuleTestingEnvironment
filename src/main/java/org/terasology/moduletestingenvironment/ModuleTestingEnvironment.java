@@ -229,9 +229,11 @@ public class ModuleTestingEnvironment {
 
     private TerasologyEngine createEngine(TerasologyEngineBuilder terasologyEngineBuilder) {
         try {
-            Path overrideHomePath = Paths.get("").toAbsolutePath().normalize();
-            logger.warn("Home path: {}", overrideHomePath);
-            PathManager.getInstance().useOverrideHomePath(overrideHomePath);
+            // Cleverly uses an ephemeral java archive as an empty filesystem for the home path
+            // this decouples the test environment from the contents of the local home directory
+            final JavaArchive homeArchive = ShrinkWrap.create(JavaArchive.class);
+            final FileSystem vfs = ShrinkWrapFileSystems.newFileSystem(homeArchive);
+            PathManager.getInstance().useOverrideHomePath(vfs.getPath(""));
         } catch (Exception e) {
             logger.warn("Exception creating archive: {}", e);
             return null;
