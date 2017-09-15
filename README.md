@@ -7,10 +7,10 @@ A test helper to instantiate a full headless TerasologyEngine instance
 Just write a test class that `extends ModuleTestingEnvironment`.
 
 For complete docs please see the
-[documentation on Github Pages](https://kaen.github.io/ModuleTestingEnvironment/org/terasology/moduletestingenvironment/ModuleTestingEnvironment.html)
+[documentation on Github Pages](https://terasology.github.io/ModuleTestingEnvironment/org/terasology/moduletestingenvironment/ModuleTestingEnvironment.html)
 
 For more examples see
-[the test suite](https://github.com/kaen/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment)
+[the test suite](https://github.com/terasology/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment)
 
 Here's an example taken from the test suite:
 
