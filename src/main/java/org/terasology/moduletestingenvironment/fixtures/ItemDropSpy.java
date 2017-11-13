@@ -36,79 +36,79 @@ import java.util.List;
  * done in a try-with-resources block ({@code ItemDropSpy} is {@link AutoCloseable}):
  * {@code
  * try (ItemDropSpy spy = new ItemDropSpy(getHostContext())) {
- *   dropExampleItems();
- *   assertTrue(spy.getDrops().exampleItemsAreCorrect());
+ *     dropExampleItems();
+ *     assertTrue(spy.getDrops().exampleItemsAreCorrect());
  * }
  * }
  * <p>
  * Alternatively, a test may call the static method {@link #collectDrops(Context, Runnable)}, which
- * may be easier to understand, especially if the code being run is a single method.  In this style,
- * the previous example would look like this:
+ * may be easier to understand, especially if the code being run is a single method.  In this
+ * style, the previous example would look like this:
  * {@code
- *   List<EntityRef> drops = ItemDropSpy.collectDrops(getHostContext(), ::dropExampleItems);
- *   assertTrue(drops.exampleItemsAreCorrect());
+ * List<EntityRef> drops = ItemDropSpy.collectDrops(getHostContext(), ::dropExampleItems);
+ * assertTrue(drops.exampleItemsAreCorrect());
  * }
  */
 public class ItemDropSpy extends BaseComponentSystem implements AutoCloseable {
 
-  private EventSystem eventSystem;
+    private EventSystem eventSystem;
 
-  private List<EntityRef> drops = new ArrayList<>();
+    private List<EntityRef> drops = new ArrayList<>();
 
-  /**
-   * Constructs a new {@code ItemDropSpy} and registers it to listen for item drops.
-   *
-   * @param context the context object for the test; this should probably be obtained through
-   *                {@link ModuleTestingEnvironment#getHostContext()} and is needed so we can
-   *                obtain an {@link EventSystem} instance to register our event handler.
-   */
-  public ItemDropSpy(Context context) {
-    eventSystem = context.get(EventSystem.class);
-    eventSystem.registerEventHandler(this);
-  }
-
-  /** Unregisters this {@code ItemDropSpy} so it stops listening for item drops. */
-  public void close() {
-    eventSystem.unregisterEventHandler(this);
-  }
-
-  /**
-   * Returns a read-only view of the list of items dropped.
-   * <p>
-   * If the {@code ItemDropSpy} has not been {@linkplain #close() closed}, then this list will
-   * continue to be updated if further item drops occur.
-   */
-  public List<EntityRef> getDrops() {
-    return Collections.unmodifiableList(drops);
-  }
-
-  /**
-   * Runs {@code block} and returns the list of all drops that occurred in the process.
-   *
-   * @param context the context object for the test, probably obtained using
-   *                {@link ModuleTestingEnvironment#getDependencies()}
-   * @param block the code to run
-   * @return the list of all items dropped during execution of {@code block}
-   */
-  public static List<EntityRef> collectDrops(Context context, Runnable block) {
-    List<EntityRef> drops;
-    try (ItemDropSpy spy = new ItemDropSpy(context)) {
-      drops = spy.getDrops();
-      block.run();
+    /**
+     * Constructs a new {@code ItemDropSpy} and registers it to listen for item drops.
+     *
+     * @param context the context object for the test; this should probably be obtained through
+     *                {@link ModuleTestingEnvironment#getHostContext()} and is needed so we can
+     *                obtain an {@link EventSystem} instance to register our event handler.
+     */
+    public ItemDropSpy(Context context) {
+        eventSystem = context.get(EventSystem.class);
+        eventSystem.registerEventHandler(this);
     }
-    return drops;
-  }
 
-  /**
-   * Records the item drop.
-   * <p>
-   * Note that this doesn't put the item in an inventory or otherwise interfere with the drop
-   * itself, but it does store a reference to the item.  Consequently, the item still exists in the
-   * world, and if other actors modify or destroy it, those changes would be reflected in the list
-   * of drops.
-   */
-  @ReceiveEvent
-  public void onItemDrop(DropItemEvent event, EntityRef item) {
-    drops.add(item);
-  }
+    /** Unregisters this {@code ItemDropSpy} so it stops listening for item drops. */
+    public void close() {
+        eventSystem.unregisterEventHandler(this);
+    }
+
+    /**
+     * Returns a read-only view of the list of items dropped.
+     * <p>
+     * If the {@code ItemDropSpy} has not been {@linkplain #close() closed}, then this list will
+     * continue to be updated if further item drops occur.
+     */
+    public List<EntityRef> getDrops() {
+        return Collections.unmodifiableList(drops);
+    }
+
+    /**
+     * Runs {@code block} and returns the list of all drops that occurred in the process.
+     *
+     * @param context the context object for the test, probably obtained using
+     *                {@link ModuleTestingEnvironment#getDependencies()}
+     * @param block the code to run
+     * @return the list of all items dropped during execution of {@code block}
+     */
+    public static List<EntityRef> collectDrops(Context context, Runnable block) {
+        List<EntityRef> drops;
+        try (ItemDropSpy spy = new ItemDropSpy(context)) {
+            drops = spy.getDrops();
+            block.run();
+        }
+        return drops;
+    }
+
+    /**
+     * Records the item drop.
+     * <p>
+     * Note that this doesn't put the item in an inventory or otherwise interfere with the drop
+     * itself, but it does store a reference to the item.  Consequently, the item still exists in
+     * the world, and if other actors modify or destroy it, those changes would be reflected in the
+     * list of drops.
+     */
+    @ReceiveEvent
+    public void onItemDrop(DropItemEvent event, EntityRef item) {
+        drops.add(item);
+    }
 }

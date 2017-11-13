@@ -34,69 +34,69 @@ import static org.junit.Assert.*;
 
 public class ItemDropSpyTest extends ModuleTestingEnvironment {
 
-  @Rule
-  public final ExpectedException exception = ExpectedException.none();
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
-  @Override
-  public Set<String> getDependencies() {
-    return Sets.newHashSet("engine", "ModuleTestingEnvironment");
-  }
-
-  @Test
-  public void cumulativeDropsTest() {
-    final List<EntityRef> referenceDrops = new ArrayList<>();
-    try (ItemDropSpy spy = new ItemDropSpy(getHostContext())) {
-      List<EntityRef> drops = spy.getDrops();
-      assertTrue(drops.isEmpty());
-      for (int i = 0; i < 5; i++) {
-        referenceDrops.add(dropItem());
-        assertEquals(i + 1, drops.size());
-        assertEquals(referenceDrops.get(i), drops.get(i));
-      }
+    @Override
+    public Set<String> getDependencies() {
+        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
     }
-  }
 
-  @Test
-  public void properClosureTest() {
-    List<EntityRef> drops;
-    try (ItemDropSpy spy = new ItemDropSpy(getHostContext())) {
-      drops = spy.getDrops();
+    @Test
+    public void cumulativeDropsTest() {
+        final List<EntityRef> referenceDrops = new ArrayList<>();
+        try (ItemDropSpy spy = new ItemDropSpy(getHostContext())) {
+            List<EntityRef> drops = spy.getDrops();
+            assertTrue(drops.isEmpty());
+            for (int i = 0; i < 5; i++) {
+                referenceDrops.add(dropItem());
+                assertEquals(i + 1, drops.size());
+                assertEquals(referenceDrops.get(i), drops.get(i));
+            }
+        }
     }
-    dropItem();
-    assertTrue(drops.isEmpty());
-  }
 
-  @Test
-  public void staticUsageTest() {
-    /* We need to wrap this forward declaration in an atom so it can be final and the lambda will
-     * close over it properly. */
-    final AtomicReference<List<EntityRef>> referenceDropsAtom = new AtomicReference<>();
-    final List<EntityRef> staticDrops = ItemDropSpy.collectDrops(getHostContext(), () -> {
-      try (ItemDropSpy referenceSpy = new ItemDropSpy(getHostContext())) {
-        referenceDropsAtom.set(referenceSpy.getDrops());
+    @Test
+    public void properClosureTest() {
+        List<EntityRef> drops;
+        try (ItemDropSpy spy = new ItemDropSpy(getHostContext())) {
+            drops = spy.getDrops();
+        }
         dropItem();
-      }
-    });
-    assertEquals(referenceDropsAtom.get().size(), staticDrops.size());
-    assertEquals(referenceDropsAtom.get().get(0), staticDrops.get(0));
-  }
+        assertTrue(drops.isEmpty());
+    }
 
-  @Test
-  public void readOnlyTest() {
-    List<EntityRef> drops = ItemDropSpy.collectDrops(getHostContext(), this::dropItem);
-    exception.expect(UnsupportedOperationException.class);
-    drops.add(EntityRef.NULL);
-  }
+    @Test
+    public void staticUsageTest() {
+        /* We need to wrap this forward declaration in an atom so it can be final and the lambda
+        /* will close over it properly. */
+        final AtomicReference<List<EntityRef>> referenceDropsAtom = new AtomicReference<>();
+        final List<EntityRef> staticDrops = ItemDropSpy.collectDrops(getHostContext(), () -> {
+            try (ItemDropSpy referenceSpy = new ItemDropSpy(getHostContext())) {
+                referenceDropsAtom.set(referenceSpy.getDrops());
+                dropItem();
+            }
+        });
+        assertEquals(referenceDropsAtom.get().size(), staticDrops.size());
+        assertEquals(referenceDropsAtom.get().get(0), staticDrops.get(0));
+    }
 
-  /**
-   * Drops a generic item into the world.
-   *
-   * @return the item
-   */
-  private EntityRef dropItem() {
-    final EntityManager entityManager = getHostContext().get(EntityManager.class);
-    EntityRef item = entityManager.create("engine:iconItem");
-    item.send(new DropItemEvent(Vector3f.zero()));
-    return item;
-  }
+    @Test
+    public void readOnlyTest() {
+        List<EntityRef> drops = ItemDropSpy.collectDrops(getHostContext(), this::dropItem);
+        exception.expect(UnsupportedOperationException.class);
+        drops.add(EntityRef.NULL);
+    }
+
+    /**
+     * Drops a generic item into the world.
+     *
+     * @return the item
+     */
+    private EntityRef dropItem() {
+        final EntityManager entityManager = getHostContext().get(EntityManager.class);
+        EntityRef item = entityManager.create("engine:iconItem");
+        item.send(new DropItemEvent(Vector3f.zero()));
+        return item;
+    }
 }
