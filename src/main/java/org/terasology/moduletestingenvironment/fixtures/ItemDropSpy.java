@@ -91,7 +91,7 @@ public class ItemDropSpy extends BaseComponentSystem implements AutoCloseable {
      * @return the list of all items dropped during execution of {@code block}
      */
     public static List<EntityRef> collectDrops(Context context, Runnable block) {
-        List<EntityRef> drops;
+        final List<EntityRef> drops;
         try (ItemDropSpy spy = new ItemDropSpy(context)) {
             drops = spy.getDrops();
             block.run();

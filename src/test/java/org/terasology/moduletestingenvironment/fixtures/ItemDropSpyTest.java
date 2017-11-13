@@ -58,7 +58,7 @@ public class ItemDropSpyTest extends ModuleTestingEnvironment {
 
     @Test
     public void properClosureTest() {
-        List<EntityRef> drops;
+        final List<EntityRef> drops;
         try (ItemDropSpy spy = new ItemDropSpy(getHostContext())) {
             drops = spy.getDrops();
         }
@@ -82,7 +82,7 @@ public class ItemDropSpyTest extends ModuleTestingEnvironment {
 
     @Test
     public void readOnlyTest() {
-        List<EntityRef> drops = ItemDropSpy.collectDrops(getHostContext(), this::dropItem);
+        final List<EntityRef> drops = ItemDropSpy.collectDrops(getHostContext(), this::dropItem);
         exception.expect(UnsupportedOperationException.class);
         drops.add(EntityRef.NULL);
     }
@@ -94,7 +94,7 @@ public class ItemDropSpyTest extends ModuleTestingEnvironment {
      */
     private EntityRef dropItem() {
         final EntityManager entityManager = getHostContext().get(EntityManager.class);
-        EntityRef item = entityManager.create("engine:iconItem");
+        final EntityRef item = entityManager.create("engine:iconItem");
         item.send(new DropItemEvent(Vector3f.zero()));
         return item;
     }
