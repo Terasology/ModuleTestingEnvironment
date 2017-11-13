@@ -68,8 +68,7 @@ public class ItemDropSpyTest extends ModuleTestingEnvironment {
 
     @Test
     public void staticUsageTest() {
-        /* We need to wrap this forward declaration in an atom so it can be final and the lambda
-        /* will close over it properly. */
+        // This forward declaration is wrapped in an atom so it can be final and the lambda will close over it.
         final AtomicReference<List<EntityRef>> referenceDropsAtom = new AtomicReference<>();
         final List<EntityRef> staticDrops = ItemDropSpy.collectDrops(getHostContext(), () -> {
             try (ItemDropSpy referenceSpy = new ItemDropSpy(getHostContext())) {
