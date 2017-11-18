@@ -19,10 +19,8 @@ import org.terasology.context.Context;
 import org.terasology.entitySystem.entity.EntityRef;
 import org.terasology.entitySystem.entity.internal.EntityInfoComponent;
 import org.terasology.entitySystem.event.Event;
-import org.terasology.entitySystem.event.ReceiveEvent;
 import org.terasology.entitySystem.event.internal.EventReceiver;
 import org.terasology.entitySystem.event.internal.EventSystem;
-import org.terasology.entitySystem.systems.BaseComponentSystem;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +33,17 @@ import java.util.function.BiConsumer;
  * A test should instantiate a {@code TestEventReceiver}, execute some code, and then examine the list of entityRefs or
  * events provided by {@link #getEntityRefs()} and {@link #getEvents()}.
  * <p>
+ * The receiver automatically collects events of the given type sent to its {@link Context}.
+ *
+ * <pre>
+ * {@literal
+ * TestEventReceiver<DropItemEvent> dropReceiver = new TestEventReceiver<>(getHostContext(), DropItemEvent.class)
+ * // fire some events
+ * for (DropItemEvent event : dropReceiver.getEvents()) {
+ *   // do something with the events
+ * }
+ * }
+ * </pre>
  * Users can optionally supply a {@link BiConsumer} to handle the events with custom logic.
  * <pre>
  * {@literal
@@ -54,6 +63,9 @@ import java.util.function.BiConsumer;
  * }
  * }
  * </pre>
+ *
+ * Note that listeners are discarded with the rest of the engine between tests, so closing your receiver is only
+ * useful if you need to stop handling events within a single test method.
  */
 public class TestEventReceiver<T extends Event> implements AutoCloseable, EventReceiver<T>{
 
@@ -61,22 +73,35 @@ public class TestEventReceiver<T extends Event> implements AutoCloseable, EventR
     private Class<T> klass;
     private List<EntityRef> entityRefs = new ArrayList<>();
     private List<T> events = new ArrayList<>();
-    private BiConsumer<T, EntityRef> biConsumer = (a,b)-> { };
+    private BiConsumer<T, EntityRef> handler = (a, b)-> { };
 
     /**
      * Constructs a new {@code TestEventReceiver} and registers it to listen for events.
      *
+     * <pre>
+     * {@literal
+     * TestEventReceiver receiver = new TestEventReceiver<>(context, DropItemEvent.class, (event, entity) -> {
+     *   // do something with the event or entity
+     * });
+     * }
+     * </pre>
+     *
      * @param context the context object for the test; this should probably be obtained through
      *                {@link ModuleTestingEnvironment#getHostContext()} and is needed so we can
      *                obtain an {@link EventSystem} instance to register our event handler.
+     * @param klass   the {@link Event} subclass to listen for
+     * @param handler an optional {@link BiConsumer} to fire when events are received.
      */
-    public TestEventReceiver(Context context, Class<T> klass, BiConsumer<T, EntityRef> biConsumer) {
-        this.biConsumer = biConsumer;
+    public TestEventReceiver(Context context, Class<T> klass, BiConsumer<T, EntityRef> handler) {
+        this.handler = handler;
         this.klass = klass;
         eventSystem = context.get(EventSystem.class);
         eventSystem.registerEventReceiver(this, klass, EntityInfoComponent.class);
     }
 
+    /**
+     * @see #TestEventReceiver(Context, Class, BiConsumer)
+     */
     public TestEventReceiver(Context context, Class<T> klass) {
         this.klass = klass;
         eventSystem = context.get(EventSystem.class);
@@ -90,6 +115,9 @@ public class TestEventReceiver<T extends Event> implements AutoCloseable, EventR
 
     /**
      * Returns a read-only view of the list of entities which are sent events.
+     * <p>
+     * Note that entities appear in the order they received the events, and may appear multiple times.
+     * Each entity corresponds to the {@link #getEvents()} member with the same index.
      * <p>
      * If the {@code TestEventReceiver} has not been {@linkplain #close() closed}, then this list will
      * continue to be updated if further events occur.
@@ -116,9 +144,8 @@ public class TestEventReceiver<T extends Event> implements AutoCloseable, EventR
      * the world, and if other actors modify or destroy it, those changes would be reflected in the
      * list of entityRefs.
      */
-    @ReceiveEvent
     public void onEvent(T event, EntityRef entity) {
-        biConsumer.accept(event, entity);
+        handler.accept(event, entity);
         events.add(event);
         entityRefs.add(entity);
     }
