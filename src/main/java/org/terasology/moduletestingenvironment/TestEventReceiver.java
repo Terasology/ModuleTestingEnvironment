@@ -70,7 +70,7 @@ import java.util.function.BiConsumer;
 public class TestEventReceiver<T extends Event> implements AutoCloseable, EventReceiver<T>{
 
     private EventSystem eventSystem;
-    private Class<T> klass;
+    private Class<T> eventClass;
     private List<EntityRef> entityRefs = new ArrayList<>();
     private List<T> events = new ArrayList<>();
     private BiConsumer<T, EntityRef> handler = (a, b)-> { };
@@ -89,28 +89,28 @@ public class TestEventReceiver<T extends Event> implements AutoCloseable, EventR
      * @param context the context object for the test; this should probably be obtained through
      *                {@link ModuleTestingEnvironment#getHostContext()} and is needed so we can
      *                obtain an {@link EventSystem} instance to register our event handler.
-     * @param klass   the {@link Event} subclass to listen for
+     * @param eventClass   the {@link Event} subclass to listen for
      * @param handler an optional {@link BiConsumer} to fire when events are received.
      */
-    public TestEventReceiver(Context context, Class<T> klass, BiConsumer<T, EntityRef> handler) {
+    public TestEventReceiver(Context context, Class<T> eventClass, BiConsumer<T, EntityRef> handler) {
         this.handler = handler;
-        this.klass = klass;
+        this.eventClass = eventClass;
         eventSystem = context.get(EventSystem.class);
-        eventSystem.registerEventReceiver(this, klass, EntityInfoComponent.class);
+        eventSystem.registerEventReceiver(this, eventClass, EntityInfoComponent.class);
     }
 
     /**
      * @see #TestEventReceiver(Context, Class, BiConsumer)
      */
-    public TestEventReceiver(Context context, Class<T> klass) {
-        this.klass = klass;
+    public TestEventReceiver(Context context, Class<T> eventClass) {
+        this.eventClass = eventClass;
         eventSystem = context.get(EventSystem.class);
-        eventSystem.registerEventReceiver(this, klass, EntityInfoComponent.class);
+        eventSystem.registerEventReceiver(this, eventClass, EntityInfoComponent.class);
     }
 
     /** Unregisters this {@code TestEventReceiver} so it stops listening for events. */
     public void close() {
-        eventSystem.unregisterEventReceiver(this, klass, EntityInfoComponent.class);
+        eventSystem.unregisterEventReceiver(this, eventClass, EntityInfoComponent.class);
     }
 
     /**
