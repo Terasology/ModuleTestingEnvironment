@@ -61,3 +61,15 @@ public class MyModuleEngineTest extends ModuleTestingEnvironment {
     }
 }
 ```
+
+## Receiving events
+
+You can use a `TestEventReceiver` to inspect events fired against the engine context.
+
+```java
+TestEventReceiver receiver = new TestEventReceiver<>(context, DropItemEvent.class, (event, entity) -> {
+  // do something with the event or entity
+});
+```
+
+Check the JavaDoc and test suite for more usage examples.
