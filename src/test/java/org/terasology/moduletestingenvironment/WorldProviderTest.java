@@ -18,11 +18,7 @@ package org.terasology.moduletestingenvironment;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Test;
-import org.terasology.entitySystem.entity.EntityManager;
-import org.terasology.logic.location.LocationComponent;
-import org.terasology.math.geom.Vector3f;
 import org.terasology.math.geom.Vector3i;
-import org.terasology.world.RelevanceRegionComponent;
 import org.terasology.world.WorldProvider;
 import org.terasology.world.block.BlockManager;
 

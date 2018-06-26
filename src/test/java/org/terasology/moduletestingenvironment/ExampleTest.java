@@ -20,9 +20,6 @@ import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Test;
 import org.terasology.context.Context;
-import org.terasology.engine.GameEngine;
-import org.terasology.engine.TerasologyEngine;
-import org.terasology.engine.modes.StateIngame;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.entitySystem.entity.EntityRef;
 import org.terasology.logic.players.LocalPlayer;
@@ -33,8 +30,6 @@ import org.terasology.network.ClientComponent;
 import org.terasology.world.WorldProvider;
 import org.terasology.world.block.BlockManager;
 
-import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
