@@ -51,15 +51,11 @@ import org.terasology.math.geom.Vector3i;
 import org.terasology.network.JoinStatus;
 import org.terasology.network.NetworkSystem;
 import org.terasology.registry.CoreRegistry;
-import org.terasology.utilities.LWJGLHelper;
+import org.terasology.rendering.opengl.ScreenGrabber;
 import org.terasology.world.RelevanceRegionComponent;
 import org.terasology.world.WorldProvider;
 
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.FileSystem;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -115,6 +111,8 @@ public class ModuleTestingEnvironment {
     @Before
     public void setup() throws Exception {
         host = createHost();
+        ScreenGrabber grabber = new ScreenGrabber();
+        hostContext.put(ScreenGrabber.class, grabber);
         CoreRegistry.put(GameEngine.class, host);
     }
 
@@ -193,6 +191,8 @@ public class ModuleTestingEnvironment {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.changeState(new StateMainMenu());
         connectToHost(terasologyEngine);
+        Context context = terasologyEngine.getState().getContext();
+        context.put(ScreenGrabber.class, hostContext.get(ScreenGrabber.class));
         return terasologyEngine.getState().getContext();
     }
 
