@@ -19,7 +19,9 @@ import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
-
+/**
+ * Dummy version of the class by the same name provided by the Terasology engine to avoid certain usages making no sense for the MTE.
+ */
 public class ScreenGrabber {
 
     public ScreenGrabber() {
