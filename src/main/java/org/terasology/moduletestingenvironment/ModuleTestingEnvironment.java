@@ -60,6 +60,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import static org.mockito.Mockito.mock;
+
 /**
  * Base class for tests involving full {@link TerasologyEngine} instances. View the tests included in this module for
  * simple usage examples
@@ -111,7 +113,7 @@ public class ModuleTestingEnvironment {
     @Before
     public void setup() throws Exception {
         host = createHost();
-        ScreenGrabber grabber = new ScreenGrabber();
+        ScreenGrabber grabber = mock(ScreenGrabber.class);
         hostContext.put(ScreenGrabber.class, grabber);
         CoreRegistry.put(GameEngine.class, host);
     }
