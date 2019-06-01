@@ -72,4 +72,19 @@ TestEventReceiver receiver = new TestEventReceiver<>(context, DropItemEvent.clas
 });
 ```
 
+## Delay code
+
+Conventionally, we use `while (condition)` to wait for delaying action. This can be done in MTE test by using `runWhile()` method. This runs the test enging while the condition is true.
+
+```java
+runWhile(() -> true);
+```
+
+Conversely, for running the enging _until_ some condition is true, use `runUntil()`
+
+```java
+runUntil(() -> false);
+```
+
+
 Check the JavaDoc and test suite for more usage examples.
