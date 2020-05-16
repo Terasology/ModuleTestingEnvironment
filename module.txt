@@ -1,9 +1,11 @@
 {
-    "id" : "ModuleTestingEnvironment",
-    "version" : "0.1.0-SNAPSHOT",
-    "author" : "",
-    "displayName" : "ModuleTestingEnvironment",
-    "description" : "",
-    "dependencies" : [],
-    "serverSideOnly" : false
+    "id": "ModuleTestingEnvironment",
+    "version": "1.0.0",
+    "author": "The Terasology Foundation",
+    "displayName": "ModuleTestingEnvironment",
+    "description": "A test helper to instantiate a full headless TerasologyEngine instance.",
+    "dependencies": [],
+    "serverSideOnly": false,
+    "isLibrary": true,
+    "isSpecial": true
 }
