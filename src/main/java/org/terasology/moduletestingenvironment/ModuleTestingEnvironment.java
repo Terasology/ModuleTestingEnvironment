@@ -202,7 +202,7 @@ public class ModuleTestingEnvironment {
         return Lists.newArrayList(engines);
     }
 
-    protected Context getHostContext() {
+    public Context getHostContext() {
         return hostContext;
     }
 
