@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 MovingBlocks
+ * Copyright 2020 MovingBlocks
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,34 +15,37 @@
  */
 package org.terasology.moduletestingenvironment;
 
-import com.google.common.collect.Sets;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.assets.management.AssetManager;
 import org.terasology.entitySystem.prefab.Prefab;
+import org.terasology.moduletestingenvironment.extension.Dependencies;
+import org.terasology.registry.In;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockManager;
 
-import java.util.Set;
+import java.util.Optional;
 
-public class AssetLoadingTest extends ModuleTestingEnvironment {
+@ExtendWith(MTEExtension.class)
+@Dependencies({"engine", "ModuleTestingEnvironment"})
+public class AssetLoadingTest {
 
-    @Override
-    public Set<String> getDependencies() {
-        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
-    }
+    @In
+    private BlockManager blockManager;
+    @In
+    private AssetManager assetManager;
 
     @Test
     public void blockPrefabLoadingTest() {
-        Block block = getHostContext().get(BlockManager.class).getBlock("engine:air");
-        Assert.assertNotNull(block);
-        Assert.assertEquals(0, block.getHardness());
-        Assert.assertEquals("Air", block.getDisplayName());
+        Block block = blockManager.getBlock("engine:air");
+        Assertions.assertNotNull(block);
+        Assertions.assertEquals(0, block.getHardness());
+        Assertions.assertEquals("Air", block.getDisplayName());
     }
 
     @Test
     public void simpleLoadingTest() {
-        AssetManager assetManager = getHostContext().get(AssetManager.class);
-        Assert.assertNotNull(assetManager.getAsset("engine:test", Prefab.class).get());
+        Assertions.assertNotEquals(assetManager.getAsset("engine:test", Prefab.class), Optional.empty());
     }
 }

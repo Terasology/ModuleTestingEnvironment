@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 MovingBlocks
+ * Copyright 2020 MovingBlocks
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,29 +15,28 @@
  */
 package org.terasology.moduletestingenvironment;
 
-import com.google.common.collect.Sets;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.context.Context;
 import org.terasology.engine.TerasologyEngine;
 import org.terasology.engine.modes.StateIngame;
+import org.terasology.moduletestingenvironment.extension.Dependencies;
 
 import java.util.List;
-import java.util.Set;
 
-public class ClientConnectionTest extends ModuleTestingEnvironment {
-    @Override
-    public Set<String> getDependencies() {
-        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
-    }
+@ExtendWith(MTEExtension.class)
+@Dependencies({"engine", "ModuleTestingEnvironment"})
+public class ClientConnectionTest {
 
     @Test
-    public void testClientConnection() {
-        Context clientContext = createClient();
-        List<TerasologyEngine> engines = getEngines();
-        Assert.assertEquals(2, engines.size());
-        for(TerasologyEngine engine : engines) {
-            Assert.assertEquals(StateIngame.class, engine.getState().getClass());
-        }
+    public void testClientConnection(ModuleTestingEnvironment mte) {
+        Context clientContext = mte.createClient();
+        List<TerasologyEngine> engines = mte.getEngines();
+        Assertions.assertEquals(2, engines.size());
+        Assertions.assertAll(engines
+                .stream()
+                .map((engine) ->
+                        () -> Assertions.assertEquals(StateIngame.class, engine.getState().getClass())));
     }
 }

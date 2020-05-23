@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 MovingBlocks
+ * Copyright 2020 MovingBlocks
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,35 +15,36 @@
  */
 package org.terasology.moduletestingenvironment;
 
-import com.google.common.collect.Sets;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.math.geom.Vector3i;
+import org.terasology.moduletestingenvironment.extension.Dependencies;
+import org.terasology.registry.In;
 import org.terasology.world.WorldProvider;
 import org.terasology.world.block.BlockManager;
 
-import java.util.Set;
+@ExtendWith(MTEExtension.class)
+@Dependencies({"engine", "ModuleTestingEnvironment"})
+public class WorldProviderTest {
 
-public class WorldProviderTest extends ModuleTestingEnvironment {
-
-    @Override
-    public Set<String> getDependencies() {
-        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
-    }
+    @In
+    WorldProvider worldProvider;
+    @In
+    BlockManager blockManager;
+    @In
+    ModuleTestingEnvironment moduleTestingEnvironment;
 
     @Test
     public void defaultWorldSetBlockTest() {
-        WorldProvider worldProvider = getHostContext().get(WorldProvider.class);
-        BlockManager blockManager = getHostContext().get(BlockManager.class);
-
-        forceAndWaitForGeneration(Vector3i.zero());
+        moduleTestingEnvironment.forceAndWaitForGeneration(Vector3i.zero());
 
         // this will change if the worldgenerator changes or the seed is altered, the main point is that this is a real
         // block type and not engine:unloaded
-        Assert.assertEquals("engine:air", worldProvider.getBlock(0, 0 ,0).getURI().toString());
+        Assertions.assertEquals("engine:air", worldProvider.getBlock(0, 0, 0).getURI().toString());
 
         // also verify that we can set and immediately get blocks from the worldprovider
         worldProvider.setBlock(Vector3i.zero(), blockManager.getBlock("engine:unloaded"));
-        Assert.assertEquals("engine:unloaded", worldProvider.getBlock(0, 0 ,0).getURI().toString());
+        Assertions.assertEquals("engine:unloaded", worldProvider.getBlock(0, 0, 0).getURI().toString());
     }
 }
