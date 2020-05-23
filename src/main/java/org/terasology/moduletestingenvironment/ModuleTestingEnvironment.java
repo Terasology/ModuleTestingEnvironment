@@ -66,15 +66,15 @@ import static org.mockito.Mockito.mock;
  * Base class for tests involving full {@link TerasologyEngine} instances. View the tests included in this module for
  * simple usage examples
  * <p>
- * <h2>Introduction</h2> This class will create a new host engine for each @Test method. The in-game {@link Context} for
- * this engine can be accessed via {@link #getHostContext()}. The result of this getter is equivalent to the
+ * <h2>Introduction</h2> This class will create a new host engine for each @Test method. The in-game {@link Context}
+ * for this engine can be accessed via {@link #getHostContext()}. The result of this getter is equivalent to the
  * CoreRegistry available to module code at runtime. However, it is very important that you do not use CoreRegistry in
  * your test code, as this is manipulated by the test environment to allow multiple instances of the engine to
  * peacefully coexist. You should always use the returned context reference to manipulate or inspect the CoreRegistry of
  * a given engine instance.
  * <p>
- * <h2>Client Engine Instances</h2> Client instances can be easily created via {@link #createClient()} which returns the
- * in-game context of the created engine instance. When this method returns, the client will be in the {@link
+ * <h2>Client Engine Instances</h2> Client instances can be easily created via {@link #createClient()} which returns
+ * the in-game context of the created engine instance. When this method returns, the client will be in the {@link
  * StateIngame} state and connected to the host. Currently all engine instances are headless, though it is possible to
  * use headed engines in the future.
  * <p>
@@ -119,7 +119,7 @@ public class ModuleTestingEnvironment {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         engines.forEach(TerasologyEngine::shutdown);
         engines.forEach(TerasologyEngine::cleanup);
         engines.clear();
@@ -137,7 +137,8 @@ public class ModuleTestingEnvironment {
     }
 
     /**
-     * Override this to change which world generator to use. Defaults to a dummy generator that leaves all blocks as air
+     * Override this to change which world generator to use. Defaults to a dummy generator that leaves all blocks as
+     * air
      *
      * @return the uri of the desired world generator
      */
@@ -146,13 +147,13 @@ public class ModuleTestingEnvironment {
     }
 
     /**
-     * Creates a dummy entity with RelevanceRegion component to force a chunk's generation and availability.
-     * Blocks while waiting for the chunk to become loaded
+     * Creates a dummy entity with RelevanceRegion component to force a chunk's generation and availability. Blocks
+     * while waiting for the chunk to become loaded
      *
      * @param blockPos the block position of the dummy entity. Only the chunk containing this position will be
-     *                 available
+     *         available
      */
-    protected void forceAndWaitForGeneration(Vector3i blockPos) {
+    public void forceAndWaitForGeneration(Vector3i blockPos) {
         // we need to add an entity with RegionRelevance in order to get a chunk generated
         LocationComponent locationComponent = new LocationComponent();
         locationComponent.setWorldPosition(blockPos.toVector3f());
@@ -169,14 +170,14 @@ public class ModuleTestingEnvironment {
     /**
      * Runs tick() on the engine until f evaluates to true
      */
-    protected void runUntil(Supplier<Boolean> f) {
+    public void runUntil(Supplier<Boolean> f) {
         runWhile(() -> !f.get());
     }
 
     /**
      * Runs tick() on the engine while f evaluates to true
      */
-    protected void runWhile(Supplier<Boolean> f) {
+    public void runWhile(Supplier<Boolean> f) {
         while (f.get()) {
             Thread.yield();
             for (TerasologyEngine terasologyEngine : engines) {
@@ -187,9 +188,10 @@ public class ModuleTestingEnvironment {
 
     /**
      * Creates a new client and connects it to the host
+     *
      * @return the created client's context object
      */
-    protected Context createClient() {
+    public Context createClient() {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.changeState(new StateMainMenu());
         connectToHost(terasologyEngine);
@@ -198,10 +200,25 @@ public class ModuleTestingEnvironment {
         return terasologyEngine.getState().getContext();
     }
 
-    protected List<TerasologyEngine> getEngines() {
+    /**
+     * The engines active in this instance of the module testing environment.
+     * <p>
+     * Engines are created for the host and connecting clients.
+     *
+     * @return list of active engines
+     */
+    public List<TerasologyEngine> getEngines() {
         return Lists.newArrayList(engines);
     }
 
+    /**
+     * Get the host context for this module testing environment.
+     * <p>
+     * The host context will be null if the testing environment has not been set up via {@link
+     * ModuleTestingEnvironment#setup()} beforehand.
+     *
+     * @return the engine's host context, or null if not set up yet
+     */
     public Context getHostContext() {
         return hostContext;
     }
@@ -237,7 +254,7 @@ public class ModuleTestingEnvironment {
             final FileSystem vfs = ShrinkWrapFileSystems.newFileSystem(homeArchive);
             PathManager.getInstance().useOverrideHomePath(vfs.getPath(""));
         } catch (Exception e) {
-            logger.warn("Exception creating archive: {}", e);
+            logger.warn("Exception creating archive: ", e);
             return null;
         }
 
@@ -255,15 +272,12 @@ public class ModuleTestingEnvironment {
         terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies(), getWorldGeneratorUri()));
 
         doneLoading = false;
-        terasologyEngine.subscribeToStateChange(new StateChangeSubscriber() {
-            @Override
-            public void onStateChange() {
-                if (terasologyEngine.getState() instanceof StateIngame) {
-                    hostContext = terasologyEngine.getState().getContext();
-                    doneLoading = true;
-                } else if (terasologyEngine.getState() instanceof StateLoading) {
-                    CoreRegistry.put(GameEngine.class, terasologyEngine);
-                }
+        terasologyEngine.subscribeToStateChange(() -> {
+            if (terasologyEngine.getState() instanceof org.terasology.engine.modes.StateIngame) {
+                hostContext = terasologyEngine.getState().getContext();
+                doneLoading = true;
+            } else if (terasologyEngine.getState() instanceof org.terasology.engine.modes.StateLoading) {
+                org.terasology.registry.CoreRegistry.put(org.terasology.engine.GameEngine.class, terasologyEngine);
             }
         });
 
@@ -277,7 +291,7 @@ public class ModuleTestingEnvironment {
         try {
             joinStatus = client.getFromEngineContext(NetworkSystem.class).join("localhost", 25777);
         } catch (InterruptedException e) {
-            logger.warn("Interrupted while joining: {}", e);
+            logger.warn("Interrupted while joining: ", e);
         }
 
         client.changeState(new StateLoading(joinStatus));
