@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import org.terasology.config.Config;
 import org.terasology.context.Context;
 import org.terasology.engine.GameEngine;
-import org.terasology.engine.StateChangeSubscriber;
 import org.terasology.engine.TerasologyEngine;
 import org.terasology.engine.TerasologyEngineBuilder;
 import org.terasology.engine.modes.StateIngame;
@@ -66,24 +65,29 @@ import static org.mockito.Mockito.mock;
  * Base class for tests involving full {@link TerasologyEngine} instances. View the tests included in this module for
  * simple usage examples
  * <p>
- * <h2>Introduction</h2> This class will create a new host engine for each @Test method. The in-game {@link Context}
- * for this engine can be accessed via {@link #getHostContext()}. The result of this getter is equivalent to the
- * CoreRegistry available to module code at runtime. However, it is very important that you do not use CoreRegistry in
- * your test code, as this is manipulated by the test environment to allow multiple instances of the engine to
- * peacefully coexist. You should always use the returned context reference to manipulate or inspect the CoreRegistry of
- * a given engine instance.
+ * <h2>Introduction</h2>
+ * If test classes extend this class will create a new host engine for each {@code @Test} method. If the testing
+ * environment is used by composition {@link #setup()} and {@link #tearDown()} need to be called explicitly. This can be
+ * done once for the test class or for each test.
  * <p>
- * <h2>Client Engine Instances</h2> Client instances can be easily created via {@link #createClient()} which returns
- * the in-game context of the created engine instance. When this method returns, the client will be in the {@link
- * StateIngame} state and connected to the host. Currently all engine instances are headless, though it is possible to
- * use headed engines in the future.
+ * The in-game {@link Context} for this engine can be accessed via {@link #getHostContext()}. The result of this getter
+ * is equivalent to the CoreRegistry available to module code at runtime. However, it is very important that you do not
+ * use CoreRegistry in your test code, as this is manipulated by the test environment to allow multiple instances of the
+ * engine to peacefully coexist. You should always use the returned context reference to manipulate or inspect the
+ * CoreRegistry of a given engine instance.
+ * <p>
+ * <h2>Client Engine Instances</h2>
+ * Client instances can be easily created via {@link #createClient()} which returns the in-game context of the created
+ * engine instance. When this method returns, the client will be in the {@link StateIngame} state and connected to the
+ * host. Currently all engine instances are headless, though it is possible to use headed engines in the future.
  * <p>
  * Engines can be run while a condition is true via {@link #runWhile(Supplier)} <br>{@code runWhile(()-> true);}
  * <p>
  * or conversely run until a condition is true via {@link #runUntil(Supplier)} <br>{@code runUntil(()-> false);}
  * <p>
- * <h2>Specifying Dependencies</h2> By default the environment will load only the engine itself. In order to load your
- * own module code, you must override {@link #getDependencies()} in your test subclass.
+ * <h2>Specifying Dependencies</h2>
+ * By default the environment will load only the engine itself. In order to load your own module code, you must override
+ * {@link #getDependencies()} in your test subclass.
  * <pre>
  * {@literal
  * public Set<String> getDependencies() {
@@ -91,9 +95,9 @@ import static org.mockito.Mockito.mock;
  * }
  * }
  * </pre>
- * <h2>Specifying World Generator</h2> By default the environment will use a dummy world generator which creates
- * nothing but air. To specify a more useful world generator you must override {@link #getWorldGeneratorUri()} in your
- * test subclass.
+ * <h2>Specifying World Generator</h2>
+ * By default the environment will use a dummy world generator which creates nothing but air. To specify a more useful
+ * world generator you must override {@link #getWorldGeneratorUri()} in your test subclass.
  * <pre>
  * {@literal
  * public String getWorldGeneratorUri() {
@@ -101,8 +105,39 @@ import static org.mockito.Mockito.mock;
  * }
  * }
  * </pre>
+ * <p>
+ * <h2>Reuse the MTE for Multiple Tests</h2>
+ * To use the same engine for multiple tests the testing environment can be set up explicitly and shared between tests.
+ * To configure module dependencies or the world generator an anonymous class may be used.
+ * <pre>
+ * {@code
+ * private static ModuleTestingEnvironment context;
+ *
+ * @BeforeAll
+ * public static void setup() throws Exception {
+ *     context = new ModuleTestingEnvironment() {
+ *     @Override
+ *     public Set<String> getDependencies() {
+ *         return Sets.newHashSet("ModuleTestingEnvironment");
+ *     }
+ *     };
+ *     context.setup();
+ * }
+ *
+ * @AfterAll
+ * public static void tearDown() throws Exception {
+ *     context.tearDown();
+ * }
+ *
+ * @Test
+ * public void someTest() {
+ * 	   Context hostContext = context.getHostContext();
+ *     EntityManager entityManager = hostContext.get(EntityManager.class);
+ *     // ...
+ * }
+ * }
+ * </pre>
  */
-
 public class ModuleTestingEnvironment {
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
     private boolean doneLoading;
@@ -110,6 +145,13 @@ public class ModuleTestingEnvironment {
     private Context hostContext;
     private List<TerasologyEngine> engines = Lists.newArrayList();
 
+    /**
+     * Set up and start the engine as configured via this environment.
+     * <p>
+     * Every instance should be shut down properly by calling {@link #tearDown()}.
+     *
+     * @throws Exception
+     */
     @Before
     public void setup() throws Exception {
         host = createHost();
@@ -118,6 +160,11 @@ public class ModuleTestingEnvironment {
         CoreRegistry.put(GameEngine.class, host);
     }
 
+    /**
+     * Shut down a previously started testing environment.
+     * <p>
+     * Used to properly shut down and clean up a testing environment set up and started with {@link #setup()}.
+     */
     @After
     public void tearDown() {
         engines.forEach(TerasologyEngine::shutdown);
