@@ -4,7 +4,13 @@ A test helper to instantiate a full headless TerasologyEngine instance
 
 ## Usage
 
-Just write a test class that `extends ModuleTestingEnvironment`.
+There are two options how to use the **Module Testing Environment** for writing module tests.
+
+The first variant is to write a test class that `extends ModuleTestingEnvironment`. 
+With this setup, a new engine will be spun up for each method annotated with `@Test` automatically.
+
+For more control and possible reuse of engine instances for multiple tests the module testing environment can be used explicitly. 
+This requires manual setup and tear down, but allows to run multiple tests against the same engine instance.
 
 For complete docs please see the
 [documentation on Github Pages](https://terasology.github.io/ModuleTestingEnvironment/org/terasology/moduletestingenvironment/ModuleTestingEnvironment.html)
