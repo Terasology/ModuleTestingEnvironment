@@ -27,11 +27,13 @@ import org.slf4j.LoggerFactory;
 import org.terasology.config.Config;
 import org.terasology.context.Context;
 import org.terasology.engine.GameEngine;
+import org.terasology.engine.TerasologyConstants;
 import org.terasology.engine.TerasologyEngine;
 import org.terasology.engine.TerasologyEngineBuilder;
 import org.terasology.engine.modes.StateIngame;
 import org.terasology.engine.modes.StateLoading;
 import org.terasology.engine.modes.StateMainMenu;
+import org.terasology.engine.module.ModuleManager;
 import org.terasology.engine.paths.PathManager;
 import org.terasology.engine.subsystem.EngineSubsystem;
 import org.terasology.engine.subsystem.headless.HeadlessAudio;
@@ -47,6 +49,10 @@ import org.terasology.engine.subsystem.openvr.OpenVRInput;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.logic.location.LocationComponent;
 import org.terasology.math.geom.Vector3i;
+import org.terasology.module.Module;
+import org.terasology.module.ModuleLoader;
+import org.terasology.module.ModuleMetadataJsonAdapter;
+import org.terasology.module.ModuleRegistry;
 import org.terasology.network.JoinStatus;
 import org.terasology.network.NetworkSystem;
 import org.terasology.registry.CoreRegistry;
@@ -54,7 +60,9 @@ import org.terasology.rendering.opengl.ScreenGrabber;
 import org.terasology.world.RelevanceRegionComponent;
 import org.terasology.world.WorldProvider;
 
+import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -307,9 +315,43 @@ public class ModuleTestingEnvironment {
 
         TerasologyEngine terasologyEngine = terasologyEngineBuilder.build();
         terasologyEngine.initialize();
+        registerCurrentDirectoryIfModule(terasologyEngine);
 
         engines.add(terasologyEngine);
         return terasologyEngine;
+    }
+
+    /**
+     * In standalone module environments (i.e. Jenkins CI builds) the CWD is the module under test. When it uses MTE
+     * it very likely needs to load itself as a module, but it won't be loadable from the typical path such as
+     * ./modules. This means that modules using MTE would always fail CI tests due to failing to load themselves.
+     *
+     * For these cases we try to load the CWD (via the installPath) as a module and put it in the global module
+     * registry.
+     *
+     * This process is based on how ModuleManagerImpl uses ModulePathScanner to scan for available modules.
+     *
+     * @param terasologyEngine
+     */
+    private void registerCurrentDirectoryIfModule(TerasologyEngine terasologyEngine) {
+        Path installPath = PathManager.getInstance().getInstallPath();
+        ModuleManager moduleManager = terasologyEngine.getFromEngineContext(ModuleManager.class);
+        ModuleRegistry registry = moduleManager.getRegistry();
+        ModuleMetadataJsonAdapter metadataReader = moduleManager.getModuleMetadataReader();
+        ModuleLoader moduleLoader = new ModuleLoader(metadataReader);
+        moduleLoader.setModuleInfoPath(TerasologyConstants.MODULE_INFO_FILENAME);
+
+        try {
+            Module module = moduleLoader.load(installPath);
+            if (module != null) {
+                registry.add(module);
+                logger.info("Added install path as module: {}", installPath);
+            } else {
+                logger.info("Install path does not appear to be a module: {}", installPath);
+            }
+        } catch (IOException e) {
+            logger.warn("Could not read install path as module at " + installPath);
+        }
     }
 
     private TerasologyEngine createHost() {
