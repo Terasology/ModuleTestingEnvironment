@@ -17,9 +17,6 @@ package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.nio.file.ShrinkWrapFileSystems;
-import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -61,7 +58,7 @@ import org.terasology.world.RelevanceRegionComponent;
 import org.terasology.world.WorldProvider;
 
 import java.io.IOException;
-import java.nio.file.FileSystem;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
@@ -302,14 +299,16 @@ public class ModuleTestingEnvironment {
     }
 
     private TerasologyEngine createEngine(TerasologyEngineBuilder terasologyEngineBuilder) {
+        // create temporary home paths so the MTE engines don't overwrite config/save files in your real home path
         try {
-            // Cleverly uses an ephemeral java archive as an empty filesystem for the home path
-            // this decouples the test environment from the contents of the local home directory
-            final JavaArchive homeArchive = ShrinkWrap.create(JavaArchive.class);
-            final FileSystem vfs = ShrinkWrapFileSystems.newFileSystem(homeArchive);
-            PathManager.getInstance().useOverrideHomePath(vfs.getPath(""));
+            Path path = Files.createTempDirectory("terasology-mte-engine");
+            PathManager.getInstance().useOverrideHomePath(path);
+            logger.info("Created temporary engine home path");
+
+            // JVM will delete these on normal termination but not exceptions.
+            path.toFile().deleteOnExit();
         } catch (Exception e) {
-            logger.warn("Exception creating archive: ", e);
+            logger.warn("Exception creating temporary home path for engine: ", e);
             return null;
         }
 
