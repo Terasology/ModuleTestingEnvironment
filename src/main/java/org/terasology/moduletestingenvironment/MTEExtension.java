@@ -48,7 +48,7 @@ import java.util.Map;
  */
 public class MTEExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver, TestInstancePostProcessor {
 
-    private final Map<Class<?>, ModuleTestingEnvironment> mteContexts = new HashMap<>();
+    protected final Map<Class<?>, ModuleTestingEnvironment> mteContexts = new HashMap<>();
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
