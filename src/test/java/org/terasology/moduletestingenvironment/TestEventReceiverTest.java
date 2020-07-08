@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 MovingBlocks
+ * Copyright 2020 MovingBlocks
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,35 +15,36 @@
  */
 package org.terasology.moduletestingenvironment;
 
-import com.google.common.collect.Sets;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.terasology.context.Context;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.entitySystem.entity.EntityRef;
+import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.moduletestingenvironment.fixtures.DummyEvent;
+import org.terasology.registry.In;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+@ExtendWith(MTEExtension.class)
+@Dependencies({"engine", "ModuleTestingEnvironment"})
+public class TestEventReceiverTest {
 
-public class TestEventReceiverTest extends ModuleTestingEnvironment {
-    @Override
-    public Set<String> getDependencies() {
-        return Sets.newHashSet("engine", "ModuleTestingEnvironment");
-    }
+    @In
+    private ModuleTestingEnvironment moduleTestingEnvironment;
 
     @Test
     public void repeatedEventTest() {
         final List<EntityRef> expectedEntities = new ArrayList<>();
         try (TestEventReceiver<DummyEvent> receiver = new TestEventReceiver<>(getHostContext(), DummyEvent.class)) {
             List<EntityRef> actualEntities = receiver.getEntityRefs();
-            assertTrue(actualEntities.isEmpty());
+            Assertions.assertTrue(actualEntities.isEmpty());
             for (int i = 0; i < 5; i++) {
                 expectedEntities.add(sendEvent());
-                assertEquals(i + 1, actualEntities.size());
-                assertEquals(expectedEntities.get(i), actualEntities.get(i));
+                Assertions.assertEquals(i + 1, actualEntities.size());
+                Assertions.assertEquals(expectedEntities.get(i), actualEntities.get(i));
             }
         }
     }
@@ -55,14 +56,14 @@ public class TestEventReceiverTest extends ModuleTestingEnvironment {
             entities = receiver.getEntityRefs();
         }
         sendEvent();
-        assertTrue(entities.isEmpty());
+        Assertions.assertTrue(entities.isEmpty());
     }
 
     @Test
     public void userCallbackTest() {
         final List<DummyEvent> events = new ArrayList<>();
 
-        TestEventReceiver receiver = new TestEventReceiver<>(getHostContext(), DummyEvent.class, (event, entity) -> {
+        TestEventReceiver<DummyEvent> receiver = new TestEventReceiver<>(getHostContext(), DummyEvent.class, (event, entity) -> {
             events.add(event);
         });
 
@@ -71,12 +72,12 @@ public class TestEventReceiverTest extends ModuleTestingEnvironment {
         }
 
         // ensure all interesting events were caught
-        assertEquals(3, events.size());
+        Assertions.assertEquals(3, events.size());
 
         // shouldn't receive events after closing
         receiver.close();
         sendEvent();
-        assertEquals(3, events.size());
+        Assertions.assertEquals(3, events.size());
     }
 
     /**
@@ -88,5 +89,9 @@ public class TestEventReceiverTest extends ModuleTestingEnvironment {
         final EntityRef entityRef = getHostContext().get(EntityManager.class).create();
         entityRef.send(new DummyEvent());
         return entityRef;
+    }
+
+    private Context getHostContext() {
+        return moduleTestingEnvironment.getHostContext();
     }
 }

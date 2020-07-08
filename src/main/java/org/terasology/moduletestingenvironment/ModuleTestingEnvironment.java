@@ -15,10 +15,13 @@
  */
 package org.terasology.moduletestingenvironment;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.config.Config;
@@ -145,6 +148,8 @@ import static org.mockito.Mockito.mock;
  */
 public class ModuleTestingEnvironment {
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
+    private Set<String> dependencies = Sets.newHashSet("engine");
+    private String worldGeneratorUri = "moduletestingenvironment:dummy";
     private boolean doneLoading;
     private TerasologyEngine host;
     private Context hostContext;
@@ -158,6 +163,7 @@ public class ModuleTestingEnvironment {
      * @throws Exception
      */
     @Before
+    @BeforeEach
     public void setup() throws Exception {
         host = createHost();
         ScreenGrabber grabber = mock(ScreenGrabber.class);
@@ -171,6 +177,7 @@ public class ModuleTestingEnvironment {
      * Used to properly shut down and clean up a testing environment set up and started with {@link #setup()}.
      */
     @After
+    @AfterEach
     public void tearDown() {
         engines.forEach(TerasologyEngine::shutdown);
         engines.forEach(TerasologyEngine::cleanup);
@@ -185,7 +192,19 @@ public class ModuleTestingEnvironment {
      * @return The set of module names to load
      */
     public Set<String> getDependencies() {
-        return Sets.newHashSet("engine");
+        return dependencies;
+    }
+
+    /**
+     * Setting dependencies for using by {@link ModuleTestingEnvironment}.
+     *
+     * @param dependencies the set of module names to load
+     * @throws IllegalStateException if you try'd setWorldGeneratorUrl after {@link
+     *         ModuleTestingEnvironment#setup()}
+     */
+    void setDependencies(Set<String> dependencies) {
+        Preconditions.checkState(host == null, "You cannot set Dependencies after setup");
+        this.dependencies = dependencies;
     }
 
     /**
@@ -195,8 +214,21 @@ public class ModuleTestingEnvironment {
      * @return the uri of the desired world generator
      */
     public String getWorldGeneratorUri() {
-        return "moduletestingenvironment:dummy";
+        return worldGeneratorUri;
     }
+
+    /**
+     * Setting world generator for using by {@link ModuleTestingEnvironment}.
+     *
+     * @param worldGeneratorUri the uri of desired world generator
+     * @throws IllegalStateException if you try'd setWorldGeneratorUrl after {@link
+     *         ModuleTestingEnvironment#setup()}
+     */
+    void setWorldGeneratorUri(String worldGeneratorUri) {
+        Preconditions.checkState(host == null, "You cannot set Dependencies after setup");
+        this.worldGeneratorUri = worldGeneratorUri;
+    }
+
 
     /**
      * Creates a dummy entity with RelevanceRegion component to force a chunk's generation and availability. Blocks
