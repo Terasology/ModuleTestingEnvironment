@@ -18,6 +18,7 @@ package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -56,6 +57,8 @@ import java.util.function.Supplier;
  * all tests in the class. This also means that all engine instances are shared between all tests in the class. If you
  * want isolated engine instances try {@link IsolatedMTEExtension}
  * <p>
+ * Note that classes marked {@link Nested} will share the engine context with their parent.
+ * <p>
  * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
 public class MTEExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver, TestInstancePostProcessor {
@@ -64,11 +67,23 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
+        if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
+            // nested classes get torn down in the parent
+            return;
+        }
+
         helperContexts.get(context.getRequiredTestClass()).tearDown();
     }
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
+        if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
+            // nested classes get set up in the parent
+            ModuleTestingHelper parentHelper = helperContexts.get(context.getRequiredTestClass().getEnclosingClass());
+            helperContexts.put(context.getRequiredTestClass(), parentHelper);
+            return;
+        }
+
         Dependencies dependencies = context.getRequiredTestClass().getAnnotation(Dependencies.class);
         UseWorldGenerator useWorldGenerator = context.getRequiredTestClass().getAnnotation(UseWorldGenerator.class);
         ModuleTestingHelper helperContext = new ModuleTestingHelper();
