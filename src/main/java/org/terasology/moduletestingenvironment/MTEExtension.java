@@ -109,17 +109,22 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
     public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) throws Exception {
         ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
         List<IllegalAccessException> exceptionList = new LinkedList<>();
-        Arrays.stream(testInstance.getClass().getDeclaredFields())
-                .filter((field) -> field.getAnnotation(In.class) != null)
-                .peek((field) -> field.setAccessible(true))
-                .forEach((field) -> {
-                    Object candidateObject = getDIInstance(helper, field.getType());
-                    try {
-                        field.set(testInstance, candidateObject);
-                    } catch (IllegalAccessException e) {
-                        exceptionList.add(e);
-                    }
-                });
+        Class<?> type = testInstance.getClass();
+        while (type != null) {
+            Arrays.stream(type.getDeclaredFields())
+                    .filter((field) -> field.getAnnotation(In.class) != null)
+                    .peek((field) -> field.setAccessible(true))
+                    .forEach((field) -> {
+                        Object candidateObject = getDIInstance(helper, field.getType());
+                        try {
+                            field.set(testInstance, candidateObject);
+                        } catch (IllegalAccessException e) {
+                            exceptionList.add(e);
+                        }
+                    });
+
+            type = type.getSuperclass();
+        }
         // It is tests, then it is legal ;)
         if (!exceptionList.isEmpty()) {
             throw new MultipleFailuresError("I cannot provide DI instances:", exceptionList);
