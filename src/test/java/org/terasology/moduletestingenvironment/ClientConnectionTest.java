@@ -30,9 +30,9 @@ import java.util.List;
 public class ClientConnectionTest {
 
     @Test
-    public void testClientConnection(ModuleTestingEnvironment mte) {
-        Context clientContext = mte.createClient();
-        List<TerasologyEngine> engines = mte.getEngines();
+    public void testClientConnection(ModuleTestingHelper helper) {
+        Context clientContext = helper.createClient();
+        List<TerasologyEngine> engines = helper.getEngines();
         Assertions.assertEquals(2, engines.size());
         Assertions.assertAll(engines
                 .stream()

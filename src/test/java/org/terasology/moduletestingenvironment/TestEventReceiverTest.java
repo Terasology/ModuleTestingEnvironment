@@ -33,7 +33,7 @@ import java.util.List;
 public class TestEventReceiverTest {
 
     @In
-    private ModuleTestingEnvironment moduleTestingEnvironment;
+    private ModuleTestingHelper helper;
 
     @Test
     public void repeatedEventTest() {
@@ -92,6 +92,6 @@ public class TestEventReceiverTest {
     }
 
     private Context getHostContext() {
-        return moduleTestingEnvironment.getHostContext();
+        return helper.getHostContext();
     }
 }

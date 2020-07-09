@@ -30,23 +30,23 @@ import org.terasology.moduletestingenvironment.fixtures.DummyEvent;
 import java.util.Set;
 
 public class ReuseEngineTest {
-    private static ModuleTestingEnvironment mte;
+    private static ModuleTestingHelper helper;
     private EntityRef entity;
 
     @BeforeAll
     public static void setup() throws Exception {
-        mte = new ModuleTestingEnvironment() {
+        helper = new ModuleTestingHelper() {
             @Override
             public Set<String> getDependencies() {
                 return Sets.newHashSet("ModuleTestingEnvironment");
             }
         };
-        mte.setup();
+        helper.setup();
     }
 
     @AfterAll
     public static void tearDown() {
-        mte.tearDown();
+        helper.tearDown();
     }
 
     /**
@@ -54,7 +54,7 @@ public class ReuseEngineTest {
      */
     @BeforeEach
     public void prepareEntityForTest() {
-        EntityManager entityManager = mte.getHostContext().get(EntityManager.class);
+        EntityManager entityManager = helper.getHostContext().get(EntityManager.class);
         entity = entityManager.create(new DummyComponent());
     }
 

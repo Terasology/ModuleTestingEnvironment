@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.context.Context;
 import org.terasology.entitySystem.entity.EntityManager;
-import org.terasology.entitySystem.entity.EntityRef;
 import org.terasology.logic.players.LocalPlayer;
 import org.terasology.logic.players.event.ResetCameraEvent;
 import org.terasology.math.geom.Vector3f;
@@ -31,8 +30,6 @@ import org.terasology.network.ClientComponent;
 import org.terasology.registry.In;
 import org.terasology.world.WorldProvider;
 import org.terasology.world.block.BlockManager;
-
-import java.util.List;
 
 
 @ExtendWith(MTEExtension.class)
@@ -46,23 +43,27 @@ public class ExampleTest {
     @In
     private EntityManager entityManager;
     @In
-    private ModuleTestingEnvironment moduleTestingEnvironment;
+    private ModuleTestingHelper helper;
 
     @Test
     public void testExample() {
         // create some clients (the library connects them automatically)
-        Context clientContext1 = moduleTestingEnvironment.createClient();
-        Context clientContext2 = moduleTestingEnvironment.createClient();
+        Context clientContext1 = helper.createClient();
+        Context clientContext2 = helper.createClient();
 
-        // assert that both clients are known to the server
-        List<EntityRef> clientEntities = Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class));
-        Assertions.assertEquals(2, clientEntities.size());
+        // wait for both clients to be known to the server
+        helper.runUntil(()-> Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size() == 2);
+        Assertions.assertEquals(2, Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size());
+
+        // run until a condition is true or until a timeout passes
+        boolean timedOut = helper.runWhile(1000, ()-> true);
+        Assertions.assertTrue(timedOut);
 
         // send an event to a client's local player just for fun
         clientContext1.get(LocalPlayer.class).getClientEntity().send(new ResetCameraEvent());
 
         // wait for a chunk to be generated
-        moduleTestingEnvironment.forceAndWaitForGeneration(Vector3i.zero());
+        helper.forceAndWaitForGeneration(Vector3i.zero());
 
         // set a block's type and immediately read it back
         worldProvider.setBlock(Vector3i.zero(), blockManager.getBlock("engine:air"));

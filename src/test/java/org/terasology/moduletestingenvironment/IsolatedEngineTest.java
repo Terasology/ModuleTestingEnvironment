@@ -20,7 +20,7 @@ import java.util.Set;
 @ExtendWith(IsolatedMTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class IsolatedEngineTest {
-    private Set<EntityManager> entityManagerSet = Sets.newHashSet();
+    private final Set<EntityManager> entityManagerSet = Sets.newHashSet();
     private EntityRef entity;
 
     @In
