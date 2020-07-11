@@ -14,7 +14,8 @@ Here's an example taken from the test suite:
 
 ```java
 @ExtendWith(MTEExtension.class)
-@Dependencies({"engine", "ModuleTestingEnvironment"})
+@Dependencies({"engine", "MyModule"})
+@UseWorldGenerator("CoreWorlds:flat")
 public class ExampleTest {
 
     @In
@@ -36,7 +37,7 @@ public class ExampleTest {
         helper.runUntil(()-> Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size() == 2);
         Assertions.assertEquals(2, Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size());
 
-        // run until a condition is true or until a timeout passes
+        // run while a condition is true or until a timeout passes
         boolean timedOut = helper.runWhile(1000, ()-> true);
         Assertions.assertTrue(timedOut);
 
