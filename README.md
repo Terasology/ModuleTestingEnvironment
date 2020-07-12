@@ -1,19 +1,11 @@
 # ModuleTestingEnvironment
 
-A test helper to instantiate a full headless TerasologyEngine instance
+A test helper to instantiate a full headless TerasologyEngine instance in JUnit tests.
 
 ## Usage
 
-There are two options how to use the **Module Testing Environment** for writing module tests.
-
-The first variant is to write a test class that `extends ModuleTestingEnvironment`. 
-With this setup, a new engine will be spun up for each method annotated with `@Test` automatically.
-
-For more control and possible reuse of engine instances for multiple tests the module testing environment can be used explicitly. 
-This requires manual setup and tear down, but allows to run multiple tests against the same engine instance.
-
 For complete docs please see the
-[documentation on Github Pages](https://terasology.github.io/ModuleTestingEnvironment/org/terasology/moduletestingenvironment/ModuleTestingEnvironment.html)
+[documentation on Github Pages](https://terasology.github.io/ModuleTestingEnvironment/org/terasology/moduletestingenvironment/MTEExtension.html)
 
 For more examples see
 [the test suite](https://github.com/terasology/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment)
@@ -21,49 +13,43 @@ For more examples see
 Here's an example taken from the test suite:
 
 ```java
-public class MyModuleEngineTest extends ModuleTestingEnvironment {
-    protected Logger logger = Logger.getLogger(MyModuleEngineTest.class.getName());
-    protected EntityManager entityManager;
+@ExtendWith(MTEExtension.class)
+@Dependencies({"engine", "MyModule"})
+@UseWorldGenerator("CoreWorlds:flat")
+public class ExampleTest {
 
-    @Override
-    public Set<String> getDependencies() {
-        return Sets.newHashSet("MyModule");
-    }
+    @In
+    private WorldProvider worldProvider;
+    @In
+    private BlockManager blockManager;
+    @In
+    private EntityManager entityManager;
+    @In
+    private ModuleTestingHelper helper;
 
-    @Override
-    public String getWorldGeneratorUri() {
-        return "mymodule:mymodulesworldgenerator";
-    }
-
-    @Before
-    public void beforeMyModuleTests() {
-        entityManager = getHostContext().get(EntityManager.class);
-        runUntil(()-> getHostContext().get(MyModuleReadySystem.class).isMyModuleReady());
-    }
-    
     @Test
     public void testExample() {
-        WorldProvider worldProvider = getHostContext().get(WorldProvider.class);
-        BlockManager blockManager = getHostContext().get(BlockManager.class);
-
         // create some clients (the library connects them automatically)
-        Context clientContext1 = createClient();
-        Context clientContext2 = createClient();
+        Context clientContext1 = helper.createClient();
+        Context clientContext2 = helper.createClient();
 
-        // assert that both clients are known to the server
-        EntityManager hostEntityManager = getHostContext().get(EntityManager.class);
-        List<EntityRef> clientEntities = Lists.newArrayList(hostEntityManager.getEntitiesWith(ClientComponent.class));
-        Assert.assertEquals(2, clientEntities.size());
+        // wait for both clients to be known to the server
+        helper.runUntil(()-> Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size() == 2);
+        Assertions.assertEquals(2, Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size());
+
+        // run while a condition is true or until a timeout passes
+        boolean timedOut = helper.runWhile(1000, ()-> true);
+        Assertions.assertTrue(timedOut);
 
         // send an event to a client's local player just for fun
         clientContext1.get(LocalPlayer.class).getClientEntity().send(new ResetCameraEvent());
 
         // wait for a chunk to be generated
-        forceAndWaitForGeneration(Vector3i.zero());
+        helper.forceAndWaitForGeneration(Vector3i.zero());
 
         // set a block's type and immediately read it back
         worldProvider.setBlock(Vector3i.zero(), blockManager.getBlock("engine:air"));
-        Assert.assertEquals("engine:air", worldProvider.getBlock(Vector3f.zero()).getURI().toString());
+        Assertions.assertEquals("engine:air", worldProvider.getBlock(Vector3f.zero()).getURI().toString());
     }
 }
 ```
@@ -80,7 +66,8 @@ TestEventReceiver receiver = new TestEventReceiver<>(context, DropItemEvent.clas
 
 ## Delay code
 
-Conventionally, we use `while (condition)` to wait for delaying action. This can be done in MTE test by using `runWhile()` method. This runs the test enging while the condition is true.
+Conventionally, we use `while (condition)` to wait for delaying action. This can be done in MTE test by using
+`runWhile()` method. This runs the test engine while the condition is true.
 
 ```java
 runWhile(() -> true);
@@ -92,5 +79,9 @@ Conversely, for running the enging _until_ some condition is true, use `runUntil
 runUntil(() -> false);
 ```
 
-
 Check the JavaDoc and test suite for more usage examples.
+
+## Isolating test cases
+
+By default `MTEExtension` will reuse the same engine instance for all test cases. If you want to create a new engine
+instance for every test (and wait **much** longer) try `IsolatedMTEExtension`.

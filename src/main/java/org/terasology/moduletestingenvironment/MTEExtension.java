@@ -16,7 +16,9 @@
 
 package org.terasology.moduletestingenvironment;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -25,88 +27,119 @@ import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.opentest4j.MultipleFailuresError;
+import org.terasology.context.Context;
+import org.terasology.engine.TerasologyEngine;
+import org.terasology.engine.modes.StateMainMenu;
+import org.terasology.entitySystem.entity.EntityManager;
+import org.terasology.logic.location.LocationComponent;
+import org.terasology.math.geom.Vector3i;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.moduletestingenvironment.extension.UseWorldGenerator;
 import org.terasology.registry.In;
+import org.terasology.rendering.opengl.ScreenGrabber;
+import org.terasology.world.RelevanceRegionComponent;
+import org.terasology.world.WorldProvider;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
- * Junit 5 Extension for using {@link ModuleTestingEnvironment} in your test.
+ * Junit 5 Extension for using {@link ModuleTestingHelper} in your test.
  * <p>
  * Supports Terasology's DI as in usual Systems. You can inject Managers via {@link In} annotation, constructor's or
- * test's parameters. Also you can inject {@link ModuleTestingEnvironment} itself.
+ * test's parameters. Also you can inject {@link ModuleTestingHelper} itself.
  * <p>
- * Every testclass used this create one {@link ModuleTestingEnvironment} and use it during execution all tests in
- * class.
+ * Every class annotated with this will create a single {@link ModuleTestingHelper} and use it during execution of
+ * all tests in the class. This also means that all engine instances are shared between all tests in the class. If you
+ * want isolated engine instances try {@link IsolatedMTEExtension}
+ * <p>
+ * Note that classes marked {@link Nested} will share the engine context with their parent.
  * <p>
  * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
 public class MTEExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver, TestInstancePostProcessor {
 
-    private final Map<Class<?>, ModuleTestingEnvironment> mteContexts = new HashMap<>();
+    protected final Map<Class<?>, ModuleTestingHelper> helperContexts = new HashMap<>();
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
-        mteContexts.get(context.getRequiredTestClass()).tearDown();
+        if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
+            // nested classes get torn down in the parent
+            return;
+        }
+
+        helperContexts.get(context.getRequiredTestClass()).tearDown();
     }
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
+        if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
+            // nested classes get set up in the parent
+            ModuleTestingHelper parentHelper = helperContexts.get(context.getRequiredTestClass().getEnclosingClass());
+            helperContexts.put(context.getRequiredTestClass(), parentHelper);
+            return;
+        }
+
         Dependencies dependencies = context.getRequiredTestClass().getAnnotation(Dependencies.class);
         UseWorldGenerator useWorldGenerator = context.getRequiredTestClass().getAnnotation(UseWorldGenerator.class);
-        ModuleTestingEnvironment mteContext = new ModuleTestingEnvironment();
+        ModuleTestingHelper helperContext = new ModuleTestingHelper();
         if (dependencies != null) {
-            mteContext.setDependencies(Sets.newHashSet(dependencies.value()));
+            helperContext.setDependencies(Sets.newHashSet(dependencies.value()));
         }
         if (useWorldGenerator != null) {
-            mteContext.setWorldGeneratorUri(useWorldGenerator.value());
+            helperContext.setWorldGeneratorUri(useWorldGenerator.value());
         }
-        mteContext.setup();
-        mteContexts.put(context.getRequiredTestClass(), mteContext);
+        helperContext.setup();
+        helperContexts.put(context.getRequiredTestClass(), helperContext);
     }
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        ModuleTestingEnvironment mte = mteContexts.get(extensionContext.getRequiredTestClass());
-        return mte.getHostContext().get(parameterContext.getParameter().getType()) != null
-                || parameterContext.getParameter().getType().equals(ModuleTestingEnvironment.class);
+        ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
+        return helper.getHostContext().get(parameterContext.getParameter().getType()) != null
+                || parameterContext.getParameter().getType().equals(ModuleTestingEnvironment.class)
+                || parameterContext.getParameter().getType().equals(ModuleTestingHelper.class);
     }
 
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        ModuleTestingEnvironment mte = mteContexts.get(extensionContext.getRequiredTestClass());
+        ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
         Class<?> type = parameterContext.getParameter().getType();
 
-        return getDIInstance(mte, type);
+        return getDIInstance(helper, type);
     }
 
-    private Object getDIInstance(ModuleTestingEnvironment mte, Class<?> type) {
-        if (type.equals(ModuleTestingEnvironment.class)) {
-            return mte;
+    private Object getDIInstance(ModuleTestingHelper helper, Class<?> type) {
+        if (type.equals(ModuleTestingHelper.class) || type.equals(ModuleTestingEnvironment.class)) {
+            return helper;
         }
-        return mte.getHostContext().get(type);
+        return helper.getHostContext().get(type);
     }
 
     @Override
     public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) throws Exception {
-        ModuleTestingEnvironment mte = mteContexts.get(extensionContext.getRequiredTestClass());
+        ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
         List<IllegalAccessException> exceptionList = new LinkedList<>();
-        Arrays.stream(testInstance.getClass().getDeclaredFields())
-                .filter((field) -> field.getAnnotation(In.class) != null)
-                .peek((field) -> field.setAccessible(true))
-                .forEach((field) -> {
-                    Object candidateObject = getDIInstance(mte, field.getType());
-                    try {
-                        field.set(testInstance, candidateObject);
-                    } catch (IllegalAccessException e) {
-                        exceptionList.add(e);
-                    }
-                });
+        Class<?> type = testInstance.getClass();
+        while (type != null) {
+            Arrays.stream(type.getDeclaredFields())
+                    .filter((field) -> field.getAnnotation(In.class) != null)
+                    .peek((field) -> field.setAccessible(true))
+                    .forEach((field) -> {
+                        Object candidateObject = getDIInstance(helper, field.getType());
+                        try {
+                            field.set(testInstance, candidateObject);
+                        } catch (IllegalAccessException e) {
+                            exceptionList.add(e);
+                        }
+                    });
+
+            type = type.getSuperclass();
+        }
         // It is tests, then it is legal ;)
         if (!exceptionList.isEmpty()) {
             throw new MultipleFailuresError("I cannot provide DI instances:", exceptionList);

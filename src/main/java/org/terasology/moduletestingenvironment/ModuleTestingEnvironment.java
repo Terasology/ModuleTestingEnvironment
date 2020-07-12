@@ -145,15 +145,18 @@ import static org.mockito.Mockito.mock;
  * }
  * }
  * </pre>
+ * @deprecated Use the {@link MTEExtension} or {@link IsolatedMTEExtension} instead with JUnit5.
  */
+@Deprecated
 public class ModuleTestingEnvironment {
+    public static final long DEFAULT_TIMEOUT = 30000;
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
     private Set<String> dependencies = Sets.newHashSet("engine");
     private String worldGeneratorUri = "moduletestingenvironment:dummy";
     private boolean doneLoading;
     private TerasologyEngine host;
     private Context hostContext;
-    private List<TerasologyEngine> engines = Lists.newArrayList();
+    private final List<TerasologyEngine> engines = Lists.newArrayList();
 
     /**
      * Set up and start the engine as configured via this environment.
@@ -252,22 +255,47 @@ public class ModuleTestingEnvironment {
     }
 
     /**
-     * Runs tick() on the engine until f evaluates to true
+     * Runs tick() on the engine until f evaluates to true or DEFAULT_TIMEOUT milliseconds have passed
      */
     public void runUntil(Supplier<Boolean> f) {
         runWhile(() -> !f.get());
     }
 
     /**
-     * Runs tick() on the engine while f evaluates to true
+     * Runs tick() on the engine until f evaluates to true or timeoutMs has passed
+     *
+     * @return true if execution timed out
+     */
+    public boolean runUntil(long timeoutMs, Supplier<Boolean> f) {
+        return runWhile(timeoutMs, () -> !f.get());
+    }
+
+    /**
+     * Runs tick() on the engine while f evaluates to true or until DEFAULT_TIMEOUT milliseconds have passed
      */
     public void runWhile(Supplier<Boolean> f) {
-        while (f.get()) {
+        runWhile(DEFAULT_TIMEOUT, f);
+    }
+
+    /**
+     * Runs tick() on the engine while f evaluates to true or until timeoutMs has passed
+     *
+     * @return true if execution timed out
+     */
+    public boolean runWhile(long timeoutMs, Supplier<Boolean> f) {
+        boolean timedOut = false;
+        long start = System.currentTimeMillis();
+        while (f.get() && !timedOut) {
             Thread.yield();
             for (TerasologyEngine terasologyEngine : engines) {
                 terasologyEngine.tick();
+                if (System.currentTimeMillis() - start > timeoutMs) {
+                    timedOut = true;
+                }
             }
         }
+
+        return timedOut;
     }
 
     /**

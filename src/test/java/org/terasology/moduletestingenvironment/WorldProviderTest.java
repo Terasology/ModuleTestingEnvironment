@@ -33,11 +33,11 @@ public class WorldProviderTest {
     @In
     BlockManager blockManager;
     @In
-    ModuleTestingEnvironment moduleTestingEnvironment;
+    ModuleTestingHelper helper;
 
     @Test
     public void defaultWorldSetBlockTest() {
-        moduleTestingEnvironment.forceAndWaitForGeneration(Vector3i.zero());
+        helper.forceAndWaitForGeneration(Vector3i.zero());
 
         // this will change if the worldgenerator changes or the seed is altered, the main point is that this is a real
         // block type and not engine:unloaded
