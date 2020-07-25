@@ -7,12 +7,13 @@ import com.google.common.collect.Lists;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.terasology.context.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.terasology.engine.Time;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.entitySystem.entity.EntityRef;
 import org.terasology.logic.delay.DelayManager;
 import org.terasology.logic.delay.DelayedActionTriggeredEvent;
-import org.terasology.logic.players.LocalPlayer;
 import org.terasology.moduletestingenvironment.MTEExtension;
 import org.terasology.moduletestingenvironment.ModuleTestingHelper;
 import org.terasology.moduletestingenvironment.TestEventReceiver;
@@ -23,6 +24,7 @@ import org.terasology.registry.In;
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class DelayManagerTest {
+    private static final Logger logger = LoggerFactory.getLogger(DelayManagerTest.class);
 
     @In
     DelayManager delayManager;
@@ -30,19 +32,24 @@ public class DelayManagerTest {
     @In
     EntityManager entityManager;
 
+    @In
+    Time time;
+
     @Test
     public void delayedActionIsTriggeredTest(ModuleTestingHelper helper) {
-        Context clientContext = helper.createClient();
+        helper.createClient();
         helper.runWhile(() -> Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).isEmpty());
 
         final TestEventReceiver<DelayedActionTriggeredEvent> eventReceiver =
-                new TestEventReceiver<>(clientContext, DelayedActionTriggeredEvent.class);
+                new TestEventReceiver<>(helper.getHostContext(), DelayedActionTriggeredEvent.class);
 
-        EntityRef player = clientContext.get(LocalPlayer.class).getClientEntity();
+        EntityRef player = Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).get(0);
         delayManager.addDelayedAction(player, "ModuleTestingEnvironment:delayManagerTest", 1000);
 
         Assertions.assertTrue(eventReceiver.getEvents().isEmpty());
-        helper.runWhile(1200, () -> true);
+
+        long stop = time.getGameTimeInMs() + 1200;
+        helper.runWhile(() -> time.getGameTimeInMs() < stop);
         Assertions.assertFalse(eventReceiver.getEvents().isEmpty());
     }
 }
