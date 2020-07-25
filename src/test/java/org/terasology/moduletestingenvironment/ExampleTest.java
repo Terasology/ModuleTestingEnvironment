@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.context.Context;
+import org.terasology.engine.Time;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.logic.players.LocalPlayer;
 import org.terasology.logic.players.event.ResetCameraEvent;
@@ -43,6 +44,8 @@ public class ExampleTest {
     @In
     private EntityManager entityManager;
     @In
+    private Time time;
+    @In
     private ModuleTestingHelper helper;
 
     @Test
@@ -56,8 +59,11 @@ public class ExampleTest {
         Assertions.assertEquals(2, Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size());
 
         // run while a condition is true or until a timeout passes
+        long expectedTime = time.getGameTimeInMs() + 1000;
         boolean timedOut = helper.runWhile(1000, ()-> true);
         Assertions.assertTrue(timedOut);
+        Assertions.assertTrue(time.getGameTimeInMs() >= expectedTime);
+        Assertions.assertTrue(time.getGameTimeInMs() < expectedTime + 100);
 
         // send an event to a client's local player just for fun
         clientContext1.get(LocalPlayer.class).getClientEntity().send(new ResetCameraEvent());
