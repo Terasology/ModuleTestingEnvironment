@@ -21,6 +21,7 @@ import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ import org.terasology.engine.GameEngine;
 import org.terasology.engine.TerasologyConstants;
 import org.terasology.engine.TerasologyEngine;
 import org.terasology.engine.TerasologyEngineBuilder;
+import org.terasology.engine.Time;
 import org.terasology.engine.modes.StateIngame;
 import org.terasology.engine.modes.StateLoading;
 import org.terasology.engine.modes.StateMainMenu;
@@ -149,7 +151,11 @@ import static org.mockito.Mockito.mock;
  */
 @Deprecated
 public class ModuleTestingEnvironment {
+    @Deprecated
     public static final long DEFAULT_TIMEOUT = 30000;
+
+    public static final long DEFAULT_SAFETY_TIMEOUT = 60000;
+    public static final long DEFAULT_GAME_TIME_TIMEOUT = 30000;
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
     private Set<String> dependencies = Sets.newHashSet("engine");
     private String worldGeneratorUri = "moduletestingenvironment:dummy";
@@ -157,6 +163,7 @@ public class ModuleTestingEnvironment {
     private TerasologyEngine host;
     private Context hostContext;
     private final List<TerasologyEngine> engines = Lists.newArrayList();
+    private long safetyTimeoutMs = DEFAULT_SAFETY_TIMEOUT;
 
     /**
      * Set up and start the engine as configured via this environment.
@@ -255,43 +262,54 @@ public class ModuleTestingEnvironment {
     }
 
     /**
-     * Runs tick() on the engine until f evaluates to true or DEFAULT_TIMEOUT milliseconds have passed
+     * Runs tick() on the engine until f evaluates to true or DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed in game time
      */
     public void runUntil(Supplier<Boolean> f) {
         runWhile(() -> !f.get());
     }
 
     /**
-     * Runs tick() on the engine until f evaluates to true or timeoutMs has passed
+     * Runs tick() on the engine until f evaluates to true or gameTimeTimeoutMs has passed in game time
      *
      * @return true if execution timed out
      */
-    public boolean runUntil(long timeoutMs, Supplier<Boolean> f) {
-        return runWhile(timeoutMs, () -> !f.get());
+    public boolean runUntil(long gameTimeTimeoutMs, Supplier<Boolean> f) {
+        return runWhile(gameTimeTimeoutMs, () -> !f.get());
     }
 
     /**
-     * Runs tick() on the engine while f evaluates to true or until DEFAULT_TIMEOUT milliseconds have passed
+     * Runs tick() on the engine while f evaluates to true or until DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed
      */
     public void runWhile(Supplier<Boolean> f) {
-        runWhile(DEFAULT_TIMEOUT, f);
+        runWhile(DEFAULT_GAME_TIME_TIMEOUT, f);
     }
 
     /**
-     * Runs tick() on the engine while f evaluates to true or until timeoutMs has passed
+     * Runs tick() on the engine while f evaluates to true or until gameTimeTimeoutMs has passed in game time.
      *
      * @return true if execution timed out
      */
-    public boolean runWhile(long timeoutMs, Supplier<Boolean> f) {
+    public boolean runWhile(long gameTimeTimeoutMs, Supplier<Boolean> f) {
         boolean timedOut = false;
-        long start = System.currentTimeMillis();
+        Time hostTime = getHostContext().get(Time.class);
+        long startRealTime = System.currentTimeMillis();
+        long startGameTime = hostTime.getGameTimeInMs();
+
         while (f.get() && !timedOut) {
             Thread.yield();
             for (TerasologyEngine terasologyEngine : engines) {
                 terasologyEngine.tick();
-                if (System.currentTimeMillis() - start > timeoutMs) {
-                    timedOut = true;
-                }
+            }
+
+            // handle safety timeout
+            if (System.currentTimeMillis() - startRealTime > safetyTimeoutMs) {
+                timedOut = true;
+                Assertions.assertTrue(false, "MTE Safety timeout exceeded. See setSafetyTimeoutMs()");
+            }
+
+            // handle game time timeout
+            if (hostTime.getGameTimeInMs() - startGameTime > gameTimeTimeoutMs) {
+                timedOut = true;
             }
         }
 
@@ -333,6 +351,30 @@ public class ModuleTestingEnvironment {
      */
     public Context getHostContext() {
         return hostContext;
+    }
+
+
+    /**
+     * @return the current safety timeout
+     */
+    public long getSafetyTimeoutMs() {
+        return safetyTimeoutMs;
+    }
+
+    /**
+     * Sets the safety timeout (default 30000ms). The safety timeout applies to `runWhile` and related helpers, and
+     * stops execution when the specified number of real time milliseconds has passsed. Note that this is different from
+     * the timeout parameter of those methods, which is specified in game time.
+     *
+     * When a single run* helper invocation exceeds the safety timeout, MTE asserts false to explicitly fail the test.
+     *
+     * The safety timeout exists to prevent indefinite execution in Jenkins or long IDE test runs, and should be
+     * adjusted as needed so that tests pass reliably in all environments.
+     *
+     * @param safetyTimeoutMs
+     */
+    public void setSafetyTimeoutMs(long safetyTimeoutMs) {
+        this.safetyTimeoutMs = safetyTimeoutMs;
     }
 
     private TerasologyEngine createHeadlessEngine() {
