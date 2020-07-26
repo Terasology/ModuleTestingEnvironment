@@ -64,7 +64,6 @@ public class ExampleTest {
         Assertions.assertTrue(timedOut);
         long currentTime = time.getGameTimeInMs();
         Assertions.assertTrue(currentTime >= expectedTime);
-        Assertions.assertTrue(currentTime < expectedTime + 100);
 
         // send an event to a client's local player just for fun
         clientContext1.get(LocalPlayer.class).getClientEntity().send(new ResetCameraEvent());
