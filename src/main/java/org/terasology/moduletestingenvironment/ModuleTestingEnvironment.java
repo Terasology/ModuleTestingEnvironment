@@ -49,12 +49,12 @@ import org.terasology.engine.subsystem.lwjgl.LwjglInput;
 import org.terasology.engine.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.subsystem.openvr.OpenVRInput;
 import org.terasology.entitySystem.entity.EntityManager;
+import org.terasology.gestalt.module.Module;
+import org.terasology.gestalt.module.ModuleFactory;
+import org.terasology.gestalt.module.ModuleMetadataJsonAdapter;
+import org.terasology.gestalt.module.ModuleRegistry;
 import org.terasology.logic.location.LocationComponent;
 import org.terasology.math.geom.Vector3i;
-import org.terasology.module.Module;
-import org.terasology.module.ModuleLoader;
-import org.terasology.module.ModuleMetadataJsonAdapter;
-import org.terasology.module.ModuleRegistry;
 import org.terasology.network.JoinStatus;
 import org.terasology.network.NetworkSystem;
 import org.terasology.registry.CoreRegistry;
@@ -147,6 +147,7 @@ import static org.mockito.Mockito.mock;
  * }
  * }
  * </pre>
+ *
  * @deprecated Use the {@link MTEExtension} or {@link IsolatedMTEExtension} instead with JUnit5.
  */
 @Deprecated
@@ -157,12 +158,12 @@ public class ModuleTestingEnvironment {
     public static final long DEFAULT_SAFETY_TIMEOUT = 60000;
     public static final long DEFAULT_GAME_TIME_TIMEOUT = 30000;
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
+    private final List<TerasologyEngine> engines = Lists.newArrayList();
     private Set<String> dependencies = Sets.newHashSet("engine");
     private String worldGeneratorUri = "moduletestingenvironment:dummy";
     private boolean doneLoading;
     private TerasologyEngine host;
     private Context hostContext;
-    private final List<TerasologyEngine> engines = Lists.newArrayList();
     private long safetyTimeoutMs = DEFAULT_SAFETY_TIMEOUT;
 
     /**
@@ -252,17 +253,20 @@ public class ModuleTestingEnvironment {
         LocationComponent locationComponent = new LocationComponent();
         locationComponent.setWorldPosition(blockPos.toVector3f());
 
-        // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
+        // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will
+        // never be accessible
         RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
         relevanceRegionComponent.distance = new Vector3i(2, 2, 2);
 
         hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
 
-        runWhile(() -> hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString().equalsIgnoreCase("engine:unloaded"));
+        runWhile(() -> hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString().equalsIgnoreCase(
+                "engine:unloaded"));
     }
 
     /**
-     * Runs tick() on the engine until f evaluates to true or DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed in game time
+     * Runs tick() on the engine until f evaluates to true or DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed in game
+     * time
      */
     public void runUntil(Supplier<Boolean> f) {
         runWhile(() -> !f.get());
@@ -365,9 +369,9 @@ public class ModuleTestingEnvironment {
      * Sets the safety timeout (default 30000ms). The safety timeout applies to `runWhile` and related helpers, and
      * stops execution when the specified number of real time milliseconds has passsed. Note that this is different from
      * the timeout parameter of those methods, which is specified in game time.
-     *
+     * <p>
      * When a single run* helper invocation exceeds the safety timeout, MTE asserts false to explicitly fail the test.
-     *
+     * <p>
      * The safety timeout exists to prevent indefinite execution in Jenkins or long IDE test runs, and should be
      * adjusted as needed so that tests pass reliably in all environments.
      *
@@ -423,13 +427,13 @@ public class ModuleTestingEnvironment {
     }
 
     /**
-     * In standalone module environments (i.e. Jenkins CI builds) the CWD is the module under test. When it uses MTE
-     * it very likely needs to load itself as a module, but it won't be loadable from the typical path such as
-     * ./modules. This means that modules using MTE would always fail CI tests due to failing to load themselves.
-     *
+     * In standalone module environments (i.e. Jenkins CI builds) the CWD is the module under test. When it uses MTE it
+     * very likely needs to load itself as a module, but it won't be loadable from the typical path such as ./modules.
+     * This means that modules using MTE would always fail CI tests due to failing to load themselves.
+     * <p>
      * For these cases we try to load the CWD (via the installPath) as a module and put it in the global module
      * registry.
-     *
+     * <p>
      * This process is based on how ModuleManagerImpl uses ModulePathScanner to scan for available modules.
      *
      * @param terasologyEngine
@@ -439,11 +443,13 @@ public class ModuleTestingEnvironment {
         ModuleManager moduleManager = terasologyEngine.getFromEngineContext(ModuleManager.class);
         ModuleRegistry registry = moduleManager.getRegistry();
         ModuleMetadataJsonAdapter metadataReader = moduleManager.getModuleMetadataReader();
-        ModuleLoader moduleLoader = new ModuleLoader(metadataReader);
-        moduleLoader.setModuleInfoPath(TerasologyConstants.MODULE_INFO_FILENAME);
+        ModuleFactory moduleFactory = new ModuleFactory();
+        moduleFactory.getModuleMetadataLoaderMap().put(TerasologyConstants.MODULE_INFO_FILENAME.toString(),
+                metadataReader);
+
 
         try {
-            Module module = moduleLoader.load(installPath);
+            Module module = moduleFactory.createModule(installPath.toFile());
             if (module != null) {
                 registry.add(module);
                 logger.info("Added install path as module: {}", installPath);
