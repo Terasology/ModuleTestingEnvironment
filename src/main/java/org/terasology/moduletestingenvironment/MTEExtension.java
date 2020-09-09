@@ -1,22 +1,8 @@
-/*
- * Copyright 2020 MovingBlocks
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
 
 package org.terasology.moduletestingenvironment;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -27,25 +13,15 @@ import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.opentest4j.MultipleFailuresError;
-import org.terasology.context.Context;
-import org.terasology.engine.TerasologyEngine;
-import org.terasology.engine.modes.StateMainMenu;
-import org.terasology.entitySystem.entity.EntityManager;
-import org.terasology.logic.location.LocationComponent;
-import org.terasology.math.geom.Vector3i;
+import org.terasology.engine.registry.In;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.moduletestingenvironment.extension.UseWorldGenerator;
-import org.terasology.registry.In;
-import org.terasology.rendering.opengl.ScreenGrabber;
-import org.terasology.world.RelevanceRegionComponent;
-import org.terasology.world.WorldProvider;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * Junit 5 Extension for using {@link ModuleTestingHelper} in your test.
@@ -53,9 +29,9 @@ import java.util.function.Supplier;
  * Supports Terasology's DI as in usual Systems. You can inject Managers via {@link In} annotation, constructor's or
  * test's parameters. Also you can inject {@link ModuleTestingHelper} itself.
  * <p>
- * Every class annotated with this will create a single {@link ModuleTestingHelper} and use it during execution of
- * all tests in the class. This also means that all engine instances are shared between all tests in the class. If you
- * want isolated engine instances try {@link IsolatedMTEExtension}
+ * Every class annotated with this will create a single {@link ModuleTestingHelper} and use it during execution of all
+ * tests in the class. This also means that all engine instances are shared between all tests in the class. If you want
+ * isolated engine instances try {@link IsolatedMTEExtension}
  * <p>
  * Note that classes marked {@link Nested} will share the engine context with their parent.
  * <p>

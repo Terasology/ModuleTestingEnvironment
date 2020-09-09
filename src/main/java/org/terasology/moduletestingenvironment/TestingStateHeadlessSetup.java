@@ -1,44 +1,32 @@
-/*
- * Copyright 2017 MovingBlocks
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2020 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terasology.engine.SimpleUri;
-import org.terasology.engine.TerasologyConstants;
-import org.terasology.engine.module.ModuleManager;
-import org.terasology.engine.subsystem.headless.mode.StateHeadlessSetup;
-import org.terasology.game.GameManifest;
+import org.terasology.engine.core.SimpleUri;
+import org.terasology.engine.core.TerasologyConstants;
+import org.terasology.engine.core.module.ModuleManager;
+import org.terasology.engine.core.subsystem.headless.mode.StateHeadlessSetup;
+import org.terasology.engine.game.GameManifest;
+import org.terasology.engine.registry.CoreRegistry;
+import org.terasology.engine.world.internal.WorldInfo;
+import org.terasology.engine.world.time.WorldTime;
 import org.terasology.gestalt.module.Module;
 import org.terasology.gestalt.module.dependencyresolution.DependencyInfo;
 import org.terasology.gestalt.module.dependencyresolution.DependencyResolver;
 import org.terasology.gestalt.module.dependencyresolution.ResolutionResult;
 import org.terasology.gestalt.naming.Name;
-import org.terasology.registry.CoreRegistry;
-import org.terasology.world.internal.WorldInfo;
-import org.terasology.world.time.WorldTime;
 
 import java.util.Collection;
 import java.util.Set;
 
 public class TestingStateHeadlessSetup extends StateHeadlessSetup {
-    private static Logger logger = LoggerFactory.getLogger(TestingStateHeadlessSetup.class);
-    private Collection<String> dependencies;
-    private String worldGeneratorUri;
+    private static final Logger logger = LoggerFactory.getLogger(TestingStateHeadlessSetup.class);
+    private final Collection<String> dependencies;
+    private final String worldGeneratorUri;
+
     public TestingStateHeadlessSetup(Collection<String> dependencies, String worldGeneratorUri) {
         this.dependencies = dependencies;
         this.worldGeneratorUri = worldGeneratorUri;
@@ -54,7 +42,7 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
         DependencyResolver resolver = new DependencyResolver(CoreRegistry.get(ModuleManager.class).getRegistry());
 
         Set<Name> dependencyNames = Sets.newHashSet();
-        for(String moduleName : dependencies) {
+        for (String moduleName : dependencies) {
             logger.warn("Adding dependencies for {}", moduleName);
             dependencyNames.add(new Name(moduleName));
             recursivelyAddModuleDependencies(dependencyNames, new Name(moduleName));

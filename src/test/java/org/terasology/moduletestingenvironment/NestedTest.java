@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.terasology.entitySystem.entity.EntityManager;
+import org.terasology.engine.entitySystem.entity.EntityManager;
+import org.terasology.engine.registry.In;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
-import org.terasology.registry.In;
 
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
