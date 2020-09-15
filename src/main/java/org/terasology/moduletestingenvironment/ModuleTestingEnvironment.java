@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.engine.config.Config;
-import org.terasology.engine.config.SystemConfig;
 import org.terasology.engine.context.Context;
 import org.terasology.engine.core.GameEngine;
 import org.terasology.engine.core.TerasologyConstants;
@@ -489,7 +488,6 @@ public class ModuleTestingEnvironment {
         return terasologyEngine;
     }
 
-    /
     private void replaceModuleTestingEnvironmentModuleWithPackageModule(TerasologyEngine terasologyEngine) {
         ModuleManager moduleManager = terasologyEngine.getFromEngineContext(ModuleManager.class);
         moduleManager.getRegistry().removeIf((m)-> m.getId().equals(new Name("ModuleTestingEnvironment")));
