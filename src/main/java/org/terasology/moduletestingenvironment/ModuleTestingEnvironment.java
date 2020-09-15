@@ -13,12 +13,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.engine.config.Config;
+import org.terasology.engine.config.SystemConfig;
 import org.terasology.engine.context.Context;
 import org.terasology.engine.core.GameEngine;
 import org.terasology.engine.core.TerasologyConstants;
 import org.terasology.engine.core.TerasologyEngine;
 import org.terasology.engine.core.TerasologyEngineBuilder;
 import org.terasology.engine.core.Time;
+import org.terasology.engine.core.modes.GameState;
 import org.terasology.engine.core.modes.StateIngame;
 import org.terasology.engine.core.modes.StateLoading;
 import org.terasology.engine.core.modes.StateMainMenu;
@@ -41,15 +43,20 @@ import org.terasology.engine.network.JoinStatus;
 import org.terasology.engine.network.NetworkSystem;
 import org.terasology.engine.registry.CoreRegistry;
 import org.terasology.engine.rendering.opengl.ScreenGrabber;
+import org.terasology.engine.utilities.ReflectionUtil;
 import org.terasology.engine.world.RelevanceRegionComponent;
 import org.terasology.engine.world.WorldProvider;
 import org.terasology.gestalt.module.Module;
 import org.terasology.gestalt.module.ModuleFactory;
+import org.terasology.gestalt.module.ModuleMetadata;
 import org.terasology.gestalt.module.ModuleMetadataJsonAdapter;
 import org.terasology.gestalt.module.ModuleRegistry;
+import org.terasology.gestalt.naming.Name;
 import org.terasology.math.geom.Vector3i;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -451,6 +458,7 @@ public class ModuleTestingEnvironment {
     private TerasologyEngine createHost() {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.getFromEngineContext(Config.class).getSystem().setWriteSaveGamesEnabled(false);
+        replaceModuleTestingEnvironmentModuleWithPackageModule(terasologyEngine);
         terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
         terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies(), getWorldGeneratorUri()));
 
@@ -466,7 +474,33 @@ public class ModuleTestingEnvironment {
         });
 
         while (!doneLoading && terasologyEngine.tick()) { /* do nothing */ }
+        Assertions.assertTrue(doneLoading, () -> {
+            GameState gameState = terasologyEngine.getState();
+
+            if (gameState instanceof StateMainMenu) {
+                String messageOnLoad = (String) ReflectionUtil.readField(gameState, "messageOnLoad");
+                if (messageOnLoad != null && !messageOnLoad.isEmpty()) {
+                    return "Failed to load ModuleTestingEnvironment: " + messageOnLoad;
+                }
+            }
+            return "Failed to load ModuleTestingEnvironment, engine stuck on state " + gameState.getClass().getSimpleName();
+        });
+
         return terasologyEngine;
+    }
+
+    /
+    private void replaceModuleTestingEnvironmentModuleWithPackageModule(TerasologyEngine terasologyEngine) {
+        ModuleManager moduleManager = terasologyEngine.getFromEngineContext(ModuleManager.class);
+        moduleManager.getRegistry().removeIf((m)-> m.getId().equals(new Name("ModuleTestingEnvironment")));
+        ModuleMetadataJsonAdapter mmja= new ModuleMetadataJsonAdapter();
+        ModuleMetadata metadata=null;
+        try (InputStream is = ModuleTestingEnvironment.class.getResource("/module.txt").openStream()){
+            metadata = mmja.read(new InputStreamReader(is));
+        } catch (IOException e) {
+           logger.error("Cannot read module.txt for ModuleTestingEnvironment");
+        }
+        moduleManager.getRegistry().add(moduleManager.getModuleFactory().createPackageModule(metadata,"org.terasology.moduletestingenvironment"));
     }
 
     private void connectToHost(TerasologyEngine client) {
