@@ -263,7 +263,7 @@ public class ModuleTestingEnvironment {
 
         hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
 
-        runWhile(() -> hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString().equalsIgnoreCase("engine:unloaded"));
+        runWhile(() -> !worldProvider.isBlockRelevant(blockPos));
     }
 
     /**
