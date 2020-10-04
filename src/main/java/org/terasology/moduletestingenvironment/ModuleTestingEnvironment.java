@@ -248,6 +248,11 @@ public class ModuleTestingEnvironment {
      *         available
      */
     public void forceAndWaitForGeneration(Vector3i blockPos) {
+        WorldProvider worldProvider = hostContext.get(WorldProvider.class);
+        if (worldProvider.isBlockRelevant(blockPos)) {
+            return;
+        }
+
         // we need to add an entity with RegionRelevance in order to get a chunk generated
         LocationComponent locationComponent = new LocationComponent();
         locationComponent.setWorldPosition(blockPos.toVector3f());
