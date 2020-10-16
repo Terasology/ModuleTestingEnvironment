@@ -3,7 +3,6 @@
 
 package org.terasology.moduletestingenvironment.fixtures;
 
-import com.google.common.collect.Lists;
 import org.terasology.engine.SimpleUri;
 import org.terasology.registry.In;
 import org.terasology.world.generation.BaseFacetedWorldGenerator;
@@ -15,6 +14,9 @@ import org.terasology.world.generator.plugin.WorldGeneratorPluginLibrary;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Bare World Generator to generating empty chunks for testing.
+ */
 @RegisterWorldGenerator(id = "empty", displayName = "empty")
 public class EmptyWorldGenerator extends BaseFacetedWorldGenerator {
     @In
