@@ -248,6 +248,11 @@ public class ModuleTestingEnvironment {
      *         available
      */
     public void forceAndWaitForGeneration(Vector3i blockPos) {
+        WorldProvider worldProvider = hostContext.get(WorldProvider.class);
+        if (worldProvider.isBlockRelevant(blockPos)) {
+            return;
+        }
+
         // we need to add an entity with RegionRelevance in order to get a chunk generated
         LocationComponent locationComponent = new LocationComponent();
         locationComponent.setWorldPosition(blockPos.toVector3f());
@@ -258,7 +263,7 @@ public class ModuleTestingEnvironment {
 
         hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
 
-        runWhile(() -> hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString().equalsIgnoreCase("engine:unloaded"));
+        runWhile(() -> !worldProvider.isBlockRelevant(blockPos));
     }
 
     /**
