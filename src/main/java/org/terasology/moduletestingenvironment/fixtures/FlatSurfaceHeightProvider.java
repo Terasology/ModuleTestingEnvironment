@@ -43,9 +43,9 @@ public class FlatSurfaceHeightProvider implements FacetProvider {
             elevationFacet.set(pos, height);
         }
 
-        if (surfacesFacet.getWorldRegion().minY() <= height && height <= surfacesFacet.getWorldRegion().maxY()) {
-            for (int x = surfacesFacet.getWorldRegion().minX(); x <= surfacesFacet.getWorldRegion().maxX(); x++) {
-                for (int z = surfacesFacet.getWorldRegion().minZ(); z <= surfacesFacet.getWorldRegion().maxZ(); z++) {
+        if (surfacesFacet.getWorldRegion().getMinY() <= height && height <= surfacesFacet.getWorldRegion().getMaxY()) {
+            for (int x = surfacesFacet.getWorldRegion().getMinX(); x <= surfacesFacet.getWorldRegion().getMaxX(); x++) {
+                for (int z = surfacesFacet.getWorldRegion().getMinZ(); z <= surfacesFacet.getWorldRegion().getMaxZ(); z++) {
                     surfacesFacet.setWorld(x, height, z, true);
                 }
             }
