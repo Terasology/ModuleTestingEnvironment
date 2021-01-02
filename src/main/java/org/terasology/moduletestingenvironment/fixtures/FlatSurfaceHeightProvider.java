@@ -15,7 +15,7 @@
  */
 package org.terasology.moduletestingenvironment.fixtures;
 
-import org.terasology.math.geom.BaseVector2i;
+import org.joml.Vector2ic;
 import org.terasology.world.generation.FacetProvider;
 import org.terasology.world.generation.GeneratingRegion;
 import org.terasology.world.generation.Produces;
@@ -39,7 +39,7 @@ public class FlatSurfaceHeightProvider implements FacetProvider {
         ElevationFacet elevationFacet = new ElevationFacet(region.getRegion(), region.getBorderForFacet(ElevationFacet.class));
         SurfacesFacet surfacesFacet = new SurfacesFacet(region.getRegion(), region.getBorderForFacet(SurfacesFacet.class));
 
-        for (BaseVector2i pos : elevationFacet.getRelativeRegion().contents()) {
+        for (Vector2ic pos : elevationFacet.getRelativeRegion()) {
             elevationFacet.set(pos, height);
         }
 
