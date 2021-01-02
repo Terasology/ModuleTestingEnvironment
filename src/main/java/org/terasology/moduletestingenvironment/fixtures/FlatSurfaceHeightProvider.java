@@ -39,7 +39,7 @@ public class FlatSurfaceHeightProvider implements FacetProvider {
         ElevationFacet elevationFacet = new ElevationFacet(region.getRegion(), region.getBorderForFacet(ElevationFacet.class));
         SurfacesFacet surfacesFacet = new SurfacesFacet(region.getRegion(), region.getBorderForFacet(SurfacesFacet.class));
 
-        for (Vector2ic pos : elevationFacet.getRelativeRegion()) {
+        for (Vector2ic pos : elevationFacet.getRelativeArea()) {
             elevationFacet.set(pos, height);
         }
 
