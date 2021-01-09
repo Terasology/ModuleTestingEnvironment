@@ -3,6 +3,7 @@
 package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Lists;
+import org.joml.Vector3i;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,7 +12,6 @@ import org.terasology.engine.Time;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.logic.players.LocalPlayer;
 import org.terasology.logic.players.event.ResetCameraEvent;
-import org.terasology.math.geom.Vector3i;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.network.ClientComponent;
 import org.terasology.registry.In;
@@ -71,7 +71,7 @@ public class ExampleTest {
     @Test
     public void testWorldProvider() {
         // wait for a chunk to be generated
-        helper.forceAndWaitForGeneration(Vector3i.zero());
+        helper.forceAndWaitForGeneration(new Vector3i());
 
         // set a block's type and immediately read it back
         worldProvider.setBlock(new org.joml.Vector3i(), blockManager.getBlock("engine:air"));

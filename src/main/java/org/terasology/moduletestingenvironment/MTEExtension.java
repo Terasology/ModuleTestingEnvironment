@@ -16,7 +16,6 @@
 
 package org.terasology.moduletestingenvironment;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -27,25 +26,15 @@ import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.opentest4j.MultipleFailuresError;
-import org.terasology.context.Context;
-import org.terasology.engine.TerasologyEngine;
-import org.terasology.engine.modes.StateMainMenu;
-import org.terasology.entitySystem.entity.EntityManager;
-import org.terasology.logic.location.LocationComponent;
-import org.terasology.math.geom.Vector3i;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.moduletestingenvironment.extension.UseWorldGenerator;
 import org.terasology.registry.In;
-import org.terasology.rendering.opengl.ScreenGrabber;
-import org.terasology.world.RelevanceRegionComponent;
-import org.terasology.world.WorldProvider;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * Junit 5 Extension for using {@link ModuleTestingHelper} in your test.
