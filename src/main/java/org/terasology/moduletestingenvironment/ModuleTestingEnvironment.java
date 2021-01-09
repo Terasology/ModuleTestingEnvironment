@@ -5,6 +5,9 @@ package org.terasology.moduletestingenvironment;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
+import org.joml.Vector3ic;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
@@ -37,7 +40,7 @@ import org.terasology.engine.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.subsystem.openvr.OpenVRInput;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.logic.location.LocationComponent;
-import org.terasology.math.geom.Vector3i;
+import org.terasology.math.JomlUtil;
 import org.terasology.module.Module;
 import org.terasology.module.ModuleLoader;
 import org.terasology.module.ModuleMetadataJsonAdapter;
@@ -235,7 +238,7 @@ public class ModuleTestingEnvironment {
      * @param blockPos the block position of the dummy entity. Only the chunk containing this position will be
      *         available
      */
-    public void forceAndWaitForGeneration(Vector3i blockPos) {
+    public void forceAndWaitForGeneration(Vector3ic blockPos) {
         WorldProvider worldProvider = hostContext.get(WorldProvider.class);
         if (worldProvider.isBlockRelevant(blockPos)) {
             return;
@@ -243,11 +246,11 @@ public class ModuleTestingEnvironment {
 
         // we need to add an entity with RegionRelevance in order to get a chunk generated
         LocationComponent locationComponent = new LocationComponent();
-        locationComponent.setWorldPosition(blockPos.toVector3f());
+        locationComponent.setWorldPosition(new Vector3f(blockPos));
 
         // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
         RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
-        relevanceRegionComponent.distance = new Vector3i(2, 2, 2);
+        relevanceRegionComponent.distance = JomlUtil.from(new Vector3i(2, 2, 2));
 
         hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
 
