@@ -250,7 +250,7 @@ public class ModuleTestingEnvironment {
 
         // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
         RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
-        relevanceRegionComponent.distance = JomlUtil.from(new Vector3i(2, 2, 2));
+        relevanceRegionComponent.distance = new Vector3i(2, 2, 2);
 
         hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
 
