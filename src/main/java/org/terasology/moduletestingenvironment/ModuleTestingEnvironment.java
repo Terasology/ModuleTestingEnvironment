@@ -40,7 +40,6 @@ import org.terasology.engine.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.subsystem.openvr.OpenVRInput;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.logic.location.LocationComponent;
-import org.terasology.math.JomlUtil;
 import org.terasology.module.Module;
 import org.terasology.module.ModuleLoader;
 import org.terasology.module.ModuleMetadataJsonAdapter;
