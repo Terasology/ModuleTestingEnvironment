@@ -1,4 +1,4 @@
-// Copyright 2020 The Terasology Foundation
+// Copyright 2021 The Terasology Foundation
 // SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
@@ -131,7 +131,7 @@ import static org.mockito.Mockito.mock;
  *
  * @Test
  * public void someTest() {
- * 	   Context hostContext = context.getHostContext();
+ *     Context hostContext = context.getHostContext();
  *     EntityManager entityManager = hostContext.get(EntityManager.class);
  *     // ...
  * }
