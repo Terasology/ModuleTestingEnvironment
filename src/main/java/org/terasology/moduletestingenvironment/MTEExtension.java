@@ -1,21 +1,12 @@
-/*
- * Copyright 2020 MovingBlocks
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2021 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
 
 package org.terasology.moduletestingenvironment;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
+import ch.qos.logback.core.util.StatusPrinter;
 import com.google.common.collect.Sets;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -25,11 +16,15 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
+import org.opentest4j.IncompleteExecutionException;
 import org.opentest4j.MultipleFailuresError;
+import org.slf4j.LoggerFactory;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.moduletestingenvironment.extension.UseWorldGenerator;
 import org.terasology.registry.In;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -72,6 +67,8 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
             helperContexts.put(context.getRequiredTestClass(), parentHelper);
             return;
         }
+
+        setupLogging();
 
         Dependencies dependencies = context.getRequiredTestClass().getAnnotation(Dependencies.class);
         UseWorldGenerator useWorldGenerator = context.getRequiredTestClass().getAnnotation(UseWorldGenerator.class);
@@ -132,6 +129,32 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         // It is tests, then it is legal ;)
         if (!exceptionList.isEmpty()) {
             throw new MultipleFailuresError("I cannot provide DI instances:", exceptionList);
+        }
+    }
+
+    /**
+     * Apply our default logback configuration to the logger.
+     *
+     * Modules won't generally have their own logback-test.xml, so we'll install ours.
+     */
+    void setupLogging() {
+        // This is mostly right out of the book:
+        //   http://logback.qos.ch/xref/chapters/configuration/MyApp3.html
+        JoranConfigurator cfg = new JoranConfigurator();
+        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        context.reset();
+        cfg.setContext(context);
+        try (InputStream i = getClass().getResourceAsStream("default-logback.xml")) {
+            if (i == null) {
+                throw new IncompleteExecutionException("Failed to find logback.xml.");
+            }
+            cfg.doConfigure(i);
+        } catch (IOException e) {
+            throw new IncompleteExecutionException("Error reading logback.xml.", e);
+        } catch (JoranException e) {
+            throw new IncompleteExecutionException("Error during logger configuration", e);
+        } finally {
+            StatusPrinter.printInCaseOfErrorsOrWarnings(context);
         }
     }
 }
