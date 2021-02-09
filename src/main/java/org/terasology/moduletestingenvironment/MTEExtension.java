@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
-import org.opentest4j.IncompleteExecutionException;
 import org.opentest4j.MultipleFailuresError;
 import org.slf4j.LoggerFactory;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
@@ -160,13 +159,13 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         cfg.setContext(context);
         try (InputStream i = getClass().getResourceAsStream(LOGBACK_RESOURCE)) {
             if (i == null) {
-                throw new IncompleteExecutionException("Failed to find " + LOGBACK_RESOURCE);
+                throw new RuntimeException("Failed to find " + LOGBACK_RESOURCE);
             }
             cfg.doConfigure(i);
         } catch (IOException e) {
-            throw new IncompleteExecutionException("Error reading " + LOGBACK_RESOURCE, e);
+            throw new RuntimeException("Error reading " + LOGBACK_RESOURCE, e);
         } catch (JoranException e) {
-            throw new IncompleteExecutionException("Error during logger configuration", e);
+            throw new RuntimeException("Error during logger configuration", e);
         } finally {
             StatusPrinter.printInCaseOfErrorsOrWarnings(context);
         }
