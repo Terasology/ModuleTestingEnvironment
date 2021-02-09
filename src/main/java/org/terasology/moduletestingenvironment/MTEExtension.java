@@ -43,9 +43,14 @@ import java.util.Map;
  * <p>
  * Note that classes marked {@link Nested} will share the engine context with their parent.
  * <p>
+ * This will configure the logger and the current implementation is not subtle or polite about it, see
+ * {@link #setupLogging()} for notes.
+ * <p>
  * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
 public class MTEExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver, TestInstancePostProcessor {
+
+    static final String LOGBACK_RESOURCE = "default-logback.xml";
 
     protected final Map<Class<?>, ModuleTestingHelper> helperContexts = new HashMap<>();
 
@@ -134,8 +139,17 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
 
     /**
      * Apply our default logback configuration to the logger.
-     *
-     * Modules won't generally have their own logback-test.xml, so we'll install ours.
+     * <p>
+     * Modules won't generally have their own logback-test.xml, so we'll install ours from {@value LOGBACK_RESOURCE}.
+     * <p>
+     * <b>TODO:</b>
+     * <ul>
+     *   <li>Only reset the current LoggerContext if it really hasn't been customized by elsewhere.
+     *   <li>When there are multiple classes with MTEExtension, do we end up doing this repeatedly
+     *       in the same process?
+     *   <li>Provide a way to add/change/override what this is doing that doesn't require checking
+     *       out the MTE sources and editing default-logback.xml.
+     * </ul>
      */
     void setupLogging() {
         // This is mostly right out of the book:
@@ -144,13 +158,13 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         context.reset();
         cfg.setContext(context);
-        try (InputStream i = getClass().getResourceAsStream("default-logback.xml")) {
+        try (InputStream i = getClass().getResourceAsStream(LOGBACK_RESOURCE)) {
             if (i == null) {
-                throw new IncompleteExecutionException("Failed to find logback.xml.");
+                throw new IncompleteExecutionException("Failed to find " + LOGBACK_RESOURCE);
             }
             cfg.doConfigure(i);
         } catch (IOException e) {
-            throw new IncompleteExecutionException("Error reading logback.xml.", e);
+            throw new IncompleteExecutionException("Error reading " + LOGBACK_RESOURCE, e);
         } catch (JoranException e) {
             throw new IncompleteExecutionException("Error during logger configuration", e);
         } finally {
