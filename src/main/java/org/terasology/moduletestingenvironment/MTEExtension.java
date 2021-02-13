@@ -1,21 +1,12 @@
-/*
- * Copyright 2020 MovingBlocks
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2021 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
 
 package org.terasology.moduletestingenvironment;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
+import ch.qos.logback.core.util.StatusPrinter;
 import com.google.common.collect.Sets;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -26,10 +17,13 @@ import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.opentest4j.MultipleFailuresError;
+import org.slf4j.LoggerFactory;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.moduletestingenvironment.extension.UseWorldGenerator;
 import org.terasology.registry.In;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -48,9 +42,14 @@ import java.util.Map;
  * <p>
  * Note that classes marked {@link Nested} will share the engine context with their parent.
  * <p>
+ * This will configure the logger and the current implementation is not subtle or polite about it, see
+ * {@link #setupLogging()} for notes.
+ * <p>
  * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
 public class MTEExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver, TestInstancePostProcessor {
+
+    static final String LOGBACK_RESOURCE = "default-logback.xml";
 
     protected final Map<Class<?>, ModuleTestingHelper> helperContexts = new HashMap<>();
 
@@ -72,6 +71,8 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
             helperContexts.put(context.getRequiredTestClass(), parentHelper);
             return;
         }
+
+        setupLogging();
 
         Dependencies dependencies = context.getRequiredTestClass().getAnnotation(Dependencies.class);
         UseWorldGenerator useWorldGenerator = context.getRequiredTestClass().getAnnotation(UseWorldGenerator.class);
@@ -132,6 +133,41 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         // It is tests, then it is legal ;)
         if (!exceptionList.isEmpty()) {
             throw new MultipleFailuresError("I cannot provide DI instances:", exceptionList);
+        }
+    }
+
+    /**
+     * Apply our default logback configuration to the logger.
+     * <p>
+     * Modules won't generally have their own logback-test.xml, so we'll install ours from {@value LOGBACK_RESOURCE}.
+     * <p>
+     * <b>TODO:</b>
+     * <ul>
+     *   <li>Only reset the current LoggerContext if it really hasn't been customized by elsewhere.
+     *   <li>When there are multiple classes with MTEExtension, do we end up doing this repeatedly
+     *       in the same process?
+     *   <li>Provide a way to add/change/override what this is doing that doesn't require checking
+     *       out the MTE sources and editing default-logback.xml.
+     * </ul>
+     */
+    void setupLogging() {
+        // This is mostly right out of the book:
+        //   http://logback.qos.ch/xref/chapters/configuration/MyApp3.html
+        JoranConfigurator cfg = new JoranConfigurator();
+        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        context.reset();
+        cfg.setContext(context);
+        try (InputStream i = getClass().getResourceAsStream(LOGBACK_RESOURCE)) {
+            if (i == null) {
+                throw new RuntimeException("Failed to find " + LOGBACK_RESOURCE);
+            }
+            cfg.doConfigure(i);
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading " + LOGBACK_RESOURCE, e);
+        } catch (JoranException e) {
+            throw new RuntimeException("Error during logger configuration", e);
+        } finally {
+            StatusPrinter.printInCaseOfErrorsOrWarnings(context);
         }
     }
 }
