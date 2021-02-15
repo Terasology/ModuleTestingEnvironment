@@ -1,23 +1,13 @@
-/*
- * Copyright 2017 MovingBlocks
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2021 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
+import org.joml.Vector3ic;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
@@ -51,7 +41,6 @@ import org.terasology.engine.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.subsystem.openvr.OpenVRInput;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.logic.location.LocationComponent;
-import org.terasology.math.geom.Vector3i;
 import org.terasology.module.Module;
 import org.terasology.module.ModuleLoader;
 import org.terasology.module.ModuleMetadataJsonAdapter;
@@ -60,6 +49,7 @@ import org.terasology.network.JoinStatus;
 import org.terasology.network.NetworkSystem;
 import org.terasology.registry.CoreRegistry;
 import org.terasology.rendering.opengl.ScreenGrabber;
+import org.terasology.rendering.world.viewDistance.ViewDistance;
 import org.terasology.world.RelevanceRegionComponent;
 import org.terasology.world.WorldProvider;
 
@@ -142,7 +132,7 @@ import static org.mockito.Mockito.mock;
  *
  * @Test
  * public void someTest() {
- * 	   Context hostContext = context.getHostContext();
+ *     Context hostContext = context.getHostContext();
  *     EntityManager entityManager = hostContext.get(EntityManager.class);
  *     // ...
  * }
@@ -248,7 +238,7 @@ public class ModuleTestingEnvironment {
      * @param blockPos the block position of the dummy entity. Only the chunk containing this position will be
      *         available
      */
-    public void forceAndWaitForGeneration(Vector3i blockPos) {
+    public void forceAndWaitForGeneration(Vector3ic blockPos) {
         WorldProvider worldProvider = hostContext.get(WorldProvider.class);
         if (worldProvider.isBlockRelevant(blockPos)) {
             return;
@@ -256,7 +246,7 @@ public class ModuleTestingEnvironment {
 
         // we need to add an entity with RegionRelevance in order to get a chunk generated
         LocationComponent locationComponent = new LocationComponent();
-        locationComponent.setWorldPosition(blockPos.toVector3f());
+        locationComponent.setWorldPosition(new Vector3f(blockPos));
 
         // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
         RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
@@ -329,6 +319,8 @@ public class ModuleTestingEnvironment {
      */
     public Context createClient() {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
+        terasologyEngine.getFromEngineContext(Config.class).getRendering().setViewDistance(ViewDistance.LEGALLY_BLIND);
+
         terasologyEngine.changeState(new StateMainMenu());
         connectToHost(terasologyEngine);
         Context context = terasologyEngine.getState().getContext();

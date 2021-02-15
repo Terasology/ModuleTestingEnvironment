@@ -16,6 +16,8 @@
 package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Lists;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,8 +25,6 @@ import org.terasology.context.Context;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.logic.players.LocalPlayer;
 import org.terasology.logic.players.event.ResetCameraEvent;
-import org.terasology.math.geom.Vector3f;
-import org.terasology.math.geom.Vector3i;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.network.ClientComponent;
 import org.terasology.registry.In;
@@ -66,10 +66,10 @@ public class DeprecationTest {
         clientContext1.get(LocalPlayer.class).getClientEntity().send(new ResetCameraEvent());
 
         // wait for a chunk to be generated
-        helper.forceAndWaitForGeneration(Vector3i.zero());
+        helper.forceAndWaitForGeneration(new Vector3i());
 
         // set a block's type and immediately read it back
-        worldProvider.setBlock(Vector3i.zero(), blockManager.getBlock("engine:air"));
-        Assertions.assertEquals("engine:air", worldProvider.getBlock(Vector3f.zero()).getURI().toString());
+        worldProvider.setBlock(new Vector3i(), blockManager.getBlock("engine:air"));
+        Assertions.assertEquals("engine:air", worldProvider.getBlock(new Vector3f()).getURI().toString());
     }
 }
