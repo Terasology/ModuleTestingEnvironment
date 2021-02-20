@@ -1,26 +1,17 @@
-/*
- * Copyright 2017 MovingBlocks
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2021 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
+import org.joml.Vector3ic;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +21,7 @@ import org.terasology.engine.GameEngine;
 import org.terasology.engine.TerasologyConstants;
 import org.terasology.engine.TerasologyEngine;
 import org.terasology.engine.TerasologyEngineBuilder;
+import org.terasology.engine.Time;
 import org.terasology.engine.modes.StateIngame;
 import org.terasology.engine.modes.StateLoading;
 import org.terasology.engine.modes.StateMainMenu;
@@ -48,7 +40,6 @@ import org.terasology.engine.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.subsystem.openvr.OpenVRInput;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.logic.location.LocationComponent;
-import org.terasology.math.geom.Vector3i;
 import org.terasology.module.Module;
 import org.terasology.module.ModuleLoader;
 import org.terasology.module.ModuleMetadataJsonAdapter;
@@ -57,6 +48,7 @@ import org.terasology.network.JoinStatus;
 import org.terasology.network.NetworkSystem;
 import org.terasology.registry.CoreRegistry;
 import org.terasology.rendering.opengl.ScreenGrabber;
+import org.terasology.rendering.world.viewDistance.ViewDistance;
 import org.terasology.world.RelevanceRegionComponent;
 import org.terasology.world.WorldProvider;
 
@@ -139,7 +131,7 @@ import static org.mockito.Mockito.mock;
  *
  * @Test
  * public void someTest() {
- * 	   Context hostContext = context.getHostContext();
+ *     Context hostContext = context.getHostContext();
  *     EntityManager entityManager = hostContext.get(EntityManager.class);
  *     // ...
  * }
@@ -149,7 +141,11 @@ import static org.mockito.Mockito.mock;
  */
 @Deprecated
 public class ModuleTestingEnvironment {
+    @Deprecated
     public static final long DEFAULT_TIMEOUT = 30000;
+
+    public static final long DEFAULT_SAFETY_TIMEOUT = 60000;
+    public static final long DEFAULT_GAME_TIME_TIMEOUT = 30000;
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
     private Set<String> dependencies = Sets.newHashSet("engine");
     private String worldGeneratorUri = "moduletestingenvironment:dummy";
@@ -157,6 +153,7 @@ public class ModuleTestingEnvironment {
     private TerasologyEngine host;
     private Context hostContext;
     private final List<TerasologyEngine> engines = Lists.newArrayList();
+    private long safetyTimeoutMs = DEFAULT_SAFETY_TIMEOUT;
 
     /**
      * Set up and start the engine as configured via this environment.
@@ -240,10 +237,15 @@ public class ModuleTestingEnvironment {
      * @param blockPos the block position of the dummy entity. Only the chunk containing this position will be
      *         available
      */
-    public void forceAndWaitForGeneration(Vector3i blockPos) {
+    public void forceAndWaitForGeneration(Vector3ic blockPos) {
+        WorldProvider worldProvider = hostContext.get(WorldProvider.class);
+        if (worldProvider.isBlockRelevant(blockPos)) {
+            return;
+        }
+
         // we need to add an entity with RegionRelevance in order to get a chunk generated
         LocationComponent locationComponent = new LocationComponent();
-        locationComponent.setWorldPosition(blockPos.toVector3f());
+        locationComponent.setWorldPosition(new Vector3f(blockPos));
 
         // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
         RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
@@ -251,47 +253,58 @@ public class ModuleTestingEnvironment {
 
         hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
 
-        runWhile(() -> hostContext.get(WorldProvider.class).getBlock(blockPos).getURI().toString().equalsIgnoreCase("engine:unloaded"));
+        runWhile(() -> !worldProvider.isBlockRelevant(blockPos));
     }
 
     /**
-     * Runs tick() on the engine until f evaluates to true or DEFAULT_TIMEOUT milliseconds have passed
+     * Runs tick() on the engine until f evaluates to true or DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed in game time
      */
     public void runUntil(Supplier<Boolean> f) {
         runWhile(() -> !f.get());
     }
 
     /**
-     * Runs tick() on the engine until f evaluates to true or timeoutMs has passed
+     * Runs tick() on the engine until f evaluates to true or gameTimeTimeoutMs has passed in game time
      *
      * @return true if execution timed out
      */
-    public boolean runUntil(long timeoutMs, Supplier<Boolean> f) {
-        return runWhile(timeoutMs, () -> !f.get());
+    public boolean runUntil(long gameTimeTimeoutMs, Supplier<Boolean> f) {
+        return runWhile(gameTimeTimeoutMs, () -> !f.get());
     }
 
     /**
-     * Runs tick() on the engine while f evaluates to true or until DEFAULT_TIMEOUT milliseconds have passed
+     * Runs tick() on the engine while f evaluates to true or until DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed
      */
     public void runWhile(Supplier<Boolean> f) {
-        runWhile(DEFAULT_TIMEOUT, f);
+        runWhile(DEFAULT_GAME_TIME_TIMEOUT, f);
     }
 
     /**
-     * Runs tick() on the engine while f evaluates to true or until timeoutMs has passed
+     * Runs tick() on the engine while f evaluates to true or until gameTimeTimeoutMs has passed in game time.
      *
      * @return true if execution timed out
      */
-    public boolean runWhile(long timeoutMs, Supplier<Boolean> f) {
+    public boolean runWhile(long gameTimeTimeoutMs, Supplier<Boolean> f) {
         boolean timedOut = false;
-        long start = System.currentTimeMillis();
+        Time hostTime = getHostContext().get(Time.class);
+        long startRealTime = System.currentTimeMillis();
+        long startGameTime = hostTime.getGameTimeInMs();
+
         while (f.get() && !timedOut) {
             Thread.yield();
             for (TerasologyEngine terasologyEngine : engines) {
                 terasologyEngine.tick();
-                if (System.currentTimeMillis() - start > timeoutMs) {
-                    timedOut = true;
-                }
+            }
+
+            // handle safety timeout
+            if (System.currentTimeMillis() - startRealTime > safetyTimeoutMs) {
+                timedOut = true;
+                Assertions.assertTrue(false, "MTE Safety timeout exceeded. See setSafetyTimeoutMs()");
+            }
+
+            // handle game time timeout
+            if (hostTime.getGameTimeInMs() - startGameTime > gameTimeTimeoutMs) {
+                timedOut = true;
             }
         }
 
@@ -305,6 +318,8 @@ public class ModuleTestingEnvironment {
      */
     public Context createClient() {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
+        terasologyEngine.getFromEngineContext(Config.class).getRendering().setViewDistance(ViewDistance.LEGALLY_BLIND);
+
         terasologyEngine.changeState(new StateMainMenu());
         connectToHost(terasologyEngine);
         Context context = terasologyEngine.getState().getContext();
@@ -333,6 +348,30 @@ public class ModuleTestingEnvironment {
      */
     public Context getHostContext() {
         return hostContext;
+    }
+
+
+    /**
+     * @return the current safety timeout
+     */
+    public long getSafetyTimeoutMs() {
+        return safetyTimeoutMs;
+    }
+
+    /**
+     * Sets the safety timeout (default 30000ms). The safety timeout applies to `runWhile` and related helpers, and
+     * stops execution when the specified number of real time milliseconds has passsed. Note that this is different from
+     * the timeout parameter of those methods, which is specified in game time.
+     *
+     * When a single run* helper invocation exceeds the safety timeout, MTE asserts false to explicitly fail the test.
+     *
+     * The safety timeout exists to prevent indefinite execution in Jenkins or long IDE test runs, and should be
+     * adjusted as needed so that tests pass reliably in all environments.
+     *
+     * @param safetyTimeoutMs
+     */
+    public void setSafetyTimeoutMs(long safetyTimeoutMs) {
+        this.safetyTimeoutMs = safetyTimeoutMs;
     }
 
     private TerasologyEngine createHeadlessEngine() {

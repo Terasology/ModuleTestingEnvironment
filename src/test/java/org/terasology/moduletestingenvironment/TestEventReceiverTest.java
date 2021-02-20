@@ -21,12 +21,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.context.Context;
 import org.terasology.entitySystem.entity.EntityManager;
 import org.terasology.entitySystem.entity.EntityRef;
+import org.terasology.logic.location.LocationComponent;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
+import org.terasology.moduletestingenvironment.fixtures.DummyComponent;
 import org.terasology.moduletestingenvironment.fixtures.DummyEvent;
 import org.terasology.registry.In;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
@@ -34,6 +38,33 @@ public class TestEventReceiverTest {
 
     @In
     private ModuleTestingHelper helper;
+
+    @In
+    private EntityManager entityManager;
+
+    @Test
+    public void componentFilterTest() {
+        EntityRef entityWithDummy = entityManager.create(new DummyComponent());
+        EntityRef entityWithDummyAndLocation = entityManager.create(new DummyComponent(), new LocationComponent());
+
+        // AtomicInteger is used because Java complained when just using a primitive int
+        AtomicInteger callbackInvocations = new AtomicInteger();
+        BiConsumer<DummyEvent, EntityRef> callback = (event, entity) -> callbackInvocations.addAndGet(1);
+
+        try (TestEventReceiver<DummyEvent> receiver = new TestEventReceiver<>(getHostContext(), DummyEvent.class, callback, DummyComponent.class, LocationComponent.class)) {
+            entityWithDummy.send(new DummyEvent());
+            entityWithDummyAndLocation.send(new DummyEvent());
+            List<EntityRef> actualEntities = receiver.getEntityRefs();
+
+            // Only the entity with both Dummy and Location should get hit
+            Assertions.assertEquals(1, callbackInvocations.get());
+            Assertions.assertTrue(actualEntities.contains(entityWithDummyAndLocation));
+            Assertions.assertFalse(actualEntities.contains(entityWithDummy));
+        }
+
+        entityWithDummy.destroy();
+        entityWithDummyAndLocation.destroy();
+    }
 
     @Test
     public void repeatedEventTest() {
