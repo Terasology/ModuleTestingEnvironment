@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
-import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.engine.SimpleUri;
@@ -20,6 +19,7 @@ import org.terasology.world.time.WorldTime;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class TestingStateHeadlessSetup extends StateHeadlessSetup {
     private static final Logger logger = LoggerFactory.getLogger(TestingStateHeadlessSetup.class);
@@ -38,11 +38,8 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
         gameManifest.setSeed("seed");
         DependencyResolver resolver = new DependencyResolver(CoreRegistry.get(ModuleManager.class).getRegistry());
 
-        Set<Name> dependencyNames = Sets.newHashSet();
-        for (String moduleName : dependencies) {
-            logger.info("Adding dependency {}", moduleName);
-            dependencyNames.add(new Name(moduleName));
-        }
+        Set<Name> dependencyNames = dependencies.stream().map(Name::new).collect(Collectors.toSet());
+        logger.info("Building manifest for module dependencies: {}", dependencyNames);
 
         ResolutionResult result = resolver.resolve(dependencyNames);
         if (!result.isSuccess()) {
