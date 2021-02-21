@@ -49,11 +49,11 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
 
         ResolutionResult result = resolver.resolve(dependencyNames);
         if (!result.isSuccess()) {
-            logger.warn("Unable to resolve modules: {}", dependencyNames);
+            logger.error("Unable to resolve modules: {}", dependencyNames);
         }
 
         for (Module module : result.getModules()) {
-            logger.warn("Loading module {} {}", module.getId(), module.getVersion());
+            logger.info("Loading module {} {}", module.getId(), module.getVersion());
             gameManifest.addModule(module.getId(), module.getVersion());
         }
 
