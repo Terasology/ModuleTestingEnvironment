@@ -10,7 +10,6 @@ import org.terasology.engine.TerasologyConstants;
 import org.terasology.engine.module.ModuleManager;
 import org.terasology.engine.subsystem.headless.mode.StateHeadlessSetup;
 import org.terasology.game.GameManifest;
-import org.terasology.module.DependencyInfo;
 import org.terasology.module.DependencyResolver;
 import org.terasology.module.Module;
 import org.terasology.module.ResolutionResult;
@@ -33,7 +32,6 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
 
     @Override
     public GameManifest createGameManifest() {
-
         GameManifest gameManifest = new GameManifest();
 
         gameManifest.setTitle("testworld");
@@ -42,9 +40,8 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
 
         Set<Name> dependencyNames = Sets.newHashSet();
         for (String moduleName : dependencies) {
-            logger.warn("Adding dependencies for {}", moduleName);
+            logger.info("Adding dependency {}", moduleName);
             dependencyNames.add(new Name(moduleName));
-            recursivelyAddModuleDependencies(dependencyNames, new Name(moduleName));
         }
 
         ResolutionResult result = resolver.resolve(dependencyNames);
@@ -62,16 +59,5 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
                 (long) (WorldTime.DAY_LENGTH * timeOffset), new SimpleUri(worldGeneratorUri));
         gameManifest.addWorld(worldInfo);
         return gameManifest;
-    }
-
-    private void recursivelyAddModuleDependencies(Set<Name> modules, Name moduleName) {
-        Module module = CoreRegistry.get(ModuleManager.class).getRegistry().getLatestModuleVersion(moduleName);
-        if (module != null) {
-            for (DependencyInfo dependencyInfo : module.getMetadata().getDependencies()) {
-                logger.warn("Adding dependency {}", dependencyInfo.getId());
-                modules.add(dependencyInfo.getId());
-                recursivelyAddModuleDependencies(modules, dependencyInfo.getId());
-            }
-        }
     }
 }
