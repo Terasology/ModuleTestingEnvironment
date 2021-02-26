@@ -413,7 +413,12 @@ public class ModuleTestingEnvironment {
 
         TerasologyEngine terasologyEngine = terasologyEngineBuilder.build();
         terasologyEngine.initialize();
-        registerCurrentDirectoryIfModule(terasologyEngine);
+
+        ModuleLoadingStuff moduleStuff = new ModuleLoadingStuff(terasologyEngine);
+        moduleStuff.loadModulesFromClasspath();
+        // does `loadModulesFromClasspath` make `registerCurrentDirectoryModule` redundant?
+        //
+        // registerCurrentDirectoryIfModule(terasologyEngine);
 
         engines.add(terasologyEngine);
         return terasologyEngine;
