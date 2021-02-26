@@ -48,8 +48,11 @@ public class ModuleLoadingStuff {
         Stream<Path> allClassPaths = Arrays.stream(
                 System.getProperty("java.class.path").split(System.getProperty("path.separator", ":"))
         ).map(Paths::get).filter(path -> path.toFile().exists());
+
+        // Some of the entries may be things in the `modules/` directory of a Terasology workspace,
+        // in which case the standard ModuleManager will handle them and we don't need to.
         Stream<Path> pathsOutsideModulesDirectory = allClassPaths.filter(classPath -> pathManager.getModulePaths().stream().anyMatch(
-                other -> !classPath.startsWith(other)
+                modulesPath -> !classPath.startsWith(modulesPath)
         ));
         List<Path> classPaths = pathsOutsideModulesDirectory.collect(Collectors.toList());
 
