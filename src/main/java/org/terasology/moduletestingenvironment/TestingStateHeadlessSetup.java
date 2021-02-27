@@ -41,6 +41,9 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
         Set<Name> dependencyNames = dependencies.stream().map(Name::new).collect(Collectors.toSet());
         logger.info("Building manifest for module dependencies: {}", dependencyNames);
 
+        // Include the MTE module to provide world generators and suchlike.
+        dependencyNames.add(new Name("ModuleTestingEnvironment"));
+
         ResolutionResult result = resolver.resolve(dependencyNames);
         if (!result.isSuccess()) {
             logger.error("Unable to resolve modules: {}", dependencyNames);
