@@ -22,6 +22,7 @@ import org.terasology.engine.TerasologyConstants;
 import org.terasology.engine.TerasologyEngine;
 import org.terasology.engine.TerasologyEngineBuilder;
 import org.terasology.engine.Time;
+import org.terasology.engine.modes.GameState;
 import org.terasology.engine.modes.StateIngame;
 import org.terasology.engine.modes.StateLoading;
 import org.terasology.engine.modes.StateMainMenu;
@@ -465,15 +466,29 @@ public class ModuleTestingEnvironment {
 
         doneLoading = false;
         terasologyEngine.subscribeToStateChange(() -> {
-            if (terasologyEngine.getState() instanceof org.terasology.engine.modes.StateIngame) {
-                hostContext = terasologyEngine.getState().getContext();
+            GameState newState = terasologyEngine.getState();
+            logger.debug("New engine state is {}", terasologyEngine.getState());
+            if (newState instanceof org.terasology.engine.modes.StateIngame) {
+                hostContext = newState.getContext();
+                if (hostContext == null) {
+                    logger.warn("hostContext is NULL in engine state {}", newState);
+                }
                 doneLoading = true;
-            } else if (terasologyEngine.getState() instanceof org.terasology.engine.modes.StateLoading) {
+            } else if (newState instanceof org.terasology.engine.modes.StateLoading) {
                 org.terasology.registry.CoreRegistry.put(org.terasology.engine.GameEngine.class, terasologyEngine);
             }
         });
 
-        while (!doneLoading && terasologyEngine.tick()) { /* do nothing */ }
+        boolean keepTicking;
+        while (!doneLoading) {
+            keepTicking = terasologyEngine.tick();
+            if (!keepTicking) {
+                throw new RuntimeException(String.format(
+                        "Engine stopped ticking before we got in game. Current state: %s",
+                        terasologyEngine.getState()
+                ));
+            }
+        }
         return terasologyEngine;
     }
 
