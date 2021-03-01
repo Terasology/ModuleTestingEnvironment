@@ -1,18 +1,5 @@
-/*
- * Copyright 2020 MovingBlocks
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2021 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Lists;
@@ -30,6 +17,8 @@ import org.terasology.network.ClientComponent;
 import org.terasology.registry.In;
 import org.terasology.world.WorldProvider;
 import org.terasology.world.block.BlockManager;
+
+import java.io.IOException;
 
 
 /**
@@ -49,7 +38,7 @@ public class DeprecationTest {
     private ModuleTestingEnvironment helper;
 
     @Test
-    public void testExample() {
+    public void testExample() throws IOException {
         // create some clients (the library connects them automatically)
         Context clientContext1 = helper.createClient();
         Context clientContext2 = helper.createClient();
