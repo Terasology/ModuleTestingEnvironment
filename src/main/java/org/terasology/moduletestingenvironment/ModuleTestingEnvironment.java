@@ -317,7 +317,7 @@ public class ModuleTestingEnvironment {
      *
      * @return the created client's context object
      */
-    public Context createClient() {
+    public Context createClient() throws IOException {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.getFromEngineContext(Config.class).getRendering().setViewDistance(ViewDistance.LEGALLY_BLIND);
 
@@ -375,7 +375,7 @@ public class ModuleTestingEnvironment {
         this.safetyTimeoutMs = safetyTimeoutMs;
     }
 
-    private TerasologyEngine createHeadlessEngine() {
+    private TerasologyEngine createHeadlessEngine() throws IOException {
         TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder();
         terasologyEngineBuilder
                 .add(new HeadlessGraphics())
@@ -386,7 +386,7 @@ public class ModuleTestingEnvironment {
         return createEngine(terasologyEngineBuilder);
     }
 
-    private TerasologyEngine createHeadedEngine() {
+    private TerasologyEngine createHeadedEngine() throws IOException {
         EngineSubsystem audio = new LwjglAudio();
         TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder()
                 .add(audio)
@@ -398,19 +398,15 @@ public class ModuleTestingEnvironment {
         return createEngine(terasologyEngineBuilder);
     }
 
-    private TerasologyEngine createEngine(TerasologyEngineBuilder terasologyEngineBuilder) {
+    private TerasologyEngine createEngine(TerasologyEngineBuilder terasologyEngineBuilder) throws IOException {
         // create temporary home paths so the MTE engines don't overwrite config/save files in your real home path
-        try {
-            Path path = Files.createTempDirectory("terasology-mte-engine");
-            PathManager.getInstance().useOverrideHomePath(path);
-            logger.info("Created temporary engine home path");
+        Path path = Files.createTempDirectory("terasology-mte-engine");
+        PathManager pathManager = PathManager.getInstance();
+        pathManager.useOverrideHomePath(path);
+        logger.info("Created temporary engine home path: {}", path);
 
-            // JVM will delete these on normal termination but not exceptions.
-            path.toFile().deleteOnExit();
-        } catch (Exception e) {
-            logger.warn("Exception creating temporary home path for engine: ", e);
-            return null;
-        }
+        // JVM will delete these on normal termination but not exceptions.
+        path.toFile().deleteOnExit();
 
         TerasologyEngine terasologyEngine = terasologyEngineBuilder.build();
         terasologyEngine.initialize();
@@ -458,7 +454,7 @@ public class ModuleTestingEnvironment {
         }
     }
 
-    private TerasologyEngine createHost() {
+    private TerasologyEngine createHost() throws IOException {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.getFromEngineContext(Config.class).getSystem().setWriteSaveGamesEnabled(false);
         terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));

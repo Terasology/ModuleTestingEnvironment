@@ -1,4 +1,4 @@
-// Copyright 2020 The Terasology Foundation
+// Copyright 2021 The Terasology Foundation
 // SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
@@ -18,6 +18,8 @@ import org.terasology.registry.In;
 import org.terasology.world.WorldProvider;
 import org.terasology.world.block.BlockManager;
 
+import java.io.IOException;
+
 
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
@@ -35,7 +37,7 @@ public class ExampleTest {
     private ModuleTestingHelper helper;
 
     @Test
-    public void testClientConnection() {
+    public void testClientConnection() throws IOException {
         int currentClients = Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size();
 
         // create some clients (the library connects them automatically)
@@ -61,7 +63,7 @@ public class ExampleTest {
     }
 
     @Test
-    public void testSendEvent() {
+    public void testSendEvent() throws IOException {
         Context clientContext = helper.createClient();
 
         // send an event to a client's local player just for fun
