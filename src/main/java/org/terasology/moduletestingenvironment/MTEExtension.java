@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.opentest4j.MultipleFailuresError;
 import org.slf4j.LoggerFactory;
+import org.terasology.engine.module.ModuleManager;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.moduletestingenvironment.extension.UseWorldGenerator;
 import org.terasology.registry.In;
@@ -65,6 +66,8 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
+        System.setProperty(ModuleManager.LOAD_CLASSPATH_MODULES_PROPERTY, "true");
+
         if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
             // nested classes get set up in the parent
             ModuleTestingHelper parentHelper = helperContexts.get(context.getRequiredTestClass().getEnclosingClass());
