@@ -8,8 +8,6 @@ import com.google.common.collect.Sets;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -162,7 +160,6 @@ public class ModuleTestingEnvironment {
      *
      * @throws Exception
      */
-    @Before
     @BeforeEach
     public void setup() throws Exception {
         host = createHost();
@@ -176,7 +173,6 @@ public class ModuleTestingEnvironment {
      * <p>
      * Used to properly shut down and clean up a testing environment set up and started with {@link #setup()}.
      */
-    @After
     @AfterEach
     public void tearDown() {
         engines.forEach(TerasologyEngine::shutdown);
