@@ -18,9 +18,9 @@ package org.terasology.moduletestingenvironment;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.terasology.context.Context;
-import org.terasology.engine.TerasologyEngine;
-import org.terasology.engine.modes.StateIngame;
+import org.terasology.engine.context.Context;
+import org.terasology.engine.core.TerasologyEngine;
+import org.terasology.engine.core.modes.StateIngame;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 
 import java.util.List;

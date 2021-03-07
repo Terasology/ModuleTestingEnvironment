@@ -16,13 +16,13 @@
 package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Lists;
-import org.terasology.context.Context;
-import org.terasology.entitySystem.Component;
-import org.terasology.entitySystem.entity.EntityRef;
-import org.terasology.entitySystem.entity.internal.EntityInfoComponent;
-import org.terasology.entitySystem.event.Event;
-import org.terasology.entitySystem.event.internal.EventReceiver;
-import org.terasology.entitySystem.event.internal.EventSystem;
+import org.terasology.engine.context.Context;
+import org.terasology.engine.entitySystem.Component;
+import org.terasology.engine.entitySystem.entity.EntityRef;
+import org.terasology.engine.entitySystem.entity.internal.EntityInfoComponent;
+import org.terasology.engine.entitySystem.event.Event;
+import org.terasology.engine.entitySystem.event.internal.EventReceiver;
+import org.terasology.engine.entitySystem.event.internal.EventSystem;
 
 import java.util.ArrayList;
 import java.util.Collections;

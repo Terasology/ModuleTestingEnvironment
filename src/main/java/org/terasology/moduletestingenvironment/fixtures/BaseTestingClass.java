@@ -3,9 +3,9 @@
 
 package org.terasology.moduletestingenvironment.fixtures;
 
-import org.terasology.entitySystem.entity.EntityManager;
+import org.terasology.engine.entitySystem.entity.EntityManager;
 import org.terasology.moduletestingenvironment.ModuleTestingHelper;
-import org.terasology.registry.In;
+import org.terasology.engine.registry.In;
 
 // A dummy class for testing injection of super class fields
 public class BaseTestingClass {
