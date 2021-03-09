@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.config.Config;
+import org.terasology.config.SystemConfig;
 import org.terasology.context.Context;
 import org.terasology.engine.GameEngine;
 import org.terasology.engine.TerasologyConstants;
@@ -450,7 +451,7 @@ public class ModuleTestingEnvironment {
 
     private TerasologyEngine createHost() {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
-        terasologyEngine.getFromEngineContext(Config.class).getSystem().setWriteSaveGamesEnabled(false);
+        terasologyEngine.getFromEngineContext(SystemConfig.class).writeSaveGamesEnabled.set(false);
         terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
         terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies(), getWorldGeneratorUri()));
 
