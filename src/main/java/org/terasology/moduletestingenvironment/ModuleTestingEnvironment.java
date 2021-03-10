@@ -21,6 +21,7 @@ import org.terasology.engine.core.TerasologyConstants;
 import org.terasology.engine.core.TerasologyEngine;
 import org.terasology.engine.core.TerasologyEngineBuilder;
 import org.terasology.engine.core.Time;
+import org.terasology.engine.core.modes.GameState;
 import org.terasology.engine.core.modes.StateIngame;
 import org.terasology.engine.core.modes.StateLoading;
 import org.terasology.engine.core.modes.StateMainMenu;
@@ -39,10 +40,6 @@ import org.terasology.engine.core.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.core.subsystem.openvr.OpenVRInput;
 import org.terasology.engine.entitySystem.entity.EntityManager;
 import org.terasology.engine.logic.location.LocationComponent;
-import org.terasology.module.Module;
-import org.terasology.module.ModuleLoader;
-import org.terasology.module.ModuleMetadataJsonAdapter;
-import org.terasology.module.ModuleRegistry;
 import org.terasology.engine.network.JoinStatus;
 import org.terasology.engine.network.NetworkSystem;
 import org.terasology.engine.registry.CoreRegistry;
@@ -50,6 +47,10 @@ import org.terasology.engine.rendering.opengl.ScreenGrabber;
 import org.terasology.engine.rendering.world.viewDistance.ViewDistance;
 import org.terasology.engine.world.RelevanceRegionComponent;
 import org.terasology.engine.world.WorldProvider;
+import org.terasology.module.Module;
+import org.terasology.module.ModuleLoader;
+import org.terasology.module.ModuleMetadataJsonAdapter;
+import org.terasology.module.ModuleRegistry;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -313,7 +314,7 @@ public class ModuleTestingEnvironment {
      *
      * @return the created client's context object
      */
-    public Context createClient() {
+    public Context createClient() throws IOException {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.getFromEngineContext(Config.class).getRendering().setViewDistance(ViewDistance.LEGALLY_BLIND);
 
@@ -371,7 +372,7 @@ public class ModuleTestingEnvironment {
         this.safetyTimeoutMs = safetyTimeoutMs;
     }
 
-    private TerasologyEngine createHeadlessEngine() {
+    private TerasologyEngine createHeadlessEngine() throws IOException {
         TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder();
         terasologyEngineBuilder
                 .add(new HeadlessGraphics())
@@ -382,7 +383,7 @@ public class ModuleTestingEnvironment {
         return createEngine(terasologyEngineBuilder);
     }
 
-    private TerasologyEngine createHeadedEngine() {
+    private TerasologyEngine createHeadedEngine() throws IOException {
         EngineSubsystem audio = new LwjglAudio();
         TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder()
                 .add(audio)
@@ -394,19 +395,15 @@ public class ModuleTestingEnvironment {
         return createEngine(terasologyEngineBuilder);
     }
 
-    private TerasologyEngine createEngine(TerasologyEngineBuilder terasologyEngineBuilder) {
+    private TerasologyEngine createEngine(TerasologyEngineBuilder terasologyEngineBuilder) throws IOException {
         // create temporary home paths so the MTE engines don't overwrite config/save files in your real home path
-        try {
-            Path path = Files.createTempDirectory("terasology-mte-engine");
-            PathManager.getInstance().useOverrideHomePath(path);
-            logger.info("Created temporary engine home path");
+        Path path = Files.createTempDirectory("terasology-mte-engine");
+        PathManager pathManager = PathManager.getInstance();
+        pathManager.useOverrideHomePath(path);
+        logger.info("Created temporary engine home path: {}", path);
 
-            // JVM will delete these on normal termination but not exceptions.
-            path.toFile().deleteOnExit();
-        } catch (Exception e) {
-            logger.warn("Exception creating temporary home path for engine: ", e);
-            return null;
-        }
+        // JVM will delete these on normal termination but not exceptions.
+        path.toFile().deleteOnExit();
 
         TerasologyEngine terasologyEngine = terasologyEngineBuilder.build();
         terasologyEngine.initialize();
@@ -449,7 +446,7 @@ public class ModuleTestingEnvironment {
         }
     }
 
-    private TerasologyEngine createHost() {
+    private TerasologyEngine createHost() throws IOException {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.getFromEngineContext(SystemConfig.class).writeSaveGamesEnabled.set(false);
         terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
@@ -457,15 +454,29 @@ public class ModuleTestingEnvironment {
 
         doneLoading = false;
         terasologyEngine.subscribeToStateChange(() -> {
-            if (terasologyEngine.getState() instanceof org.terasology.engine.core.modes.StateIngame) {
-                hostContext = terasologyEngine.getState().getContext();
+            GameState newState = terasologyEngine.getState();
+            logger.debug("New engine state is {}", terasologyEngine.getState());
+            if (newState instanceof org.terasology.engine.core.modes.StateIngame) {
+                hostContext = newState.getContext();
+                if (hostContext == null) {
+                    logger.warn("hostContext is NULL in engine state {}", newState);
+                }
                 doneLoading = true;
-            } else if (terasologyEngine.getState() instanceof org.terasology.engine.core.modes.StateLoading) {
+            } else if (newState instanceof org.terasology.engine.core.modes.StateLoading) {
                 org.terasology.engine.registry.CoreRegistry.put(GameEngine.class, terasologyEngine);
             }
         });
 
-        while (!doneLoading && terasologyEngine.tick()) { /* do nothing */ }
+        boolean keepTicking;
+        while (!doneLoading) {
+            keepTicking = terasologyEngine.tick();
+            if (!keepTicking) {
+                throw new RuntimeException(String.format(
+                        "Engine stopped ticking before we got in game. Current state: %s",
+                        terasologyEngine.getState()
+                ));
+            }
+        }
         return terasologyEngine;
     }
 

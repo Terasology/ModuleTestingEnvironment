@@ -1,4 +1,4 @@
-// Copyright 2020 The Terasology Foundation
+// Copyright 2021 The Terasology Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 package org.terasology.moduletestingenvironment.delay;
@@ -21,6 +21,8 @@ import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.engine.network.ClientComponent;
 import org.terasology.engine.registry.In;
 
+import java.io.IOException;
+
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class DelayManagerTest {
@@ -36,7 +38,7 @@ public class DelayManagerTest {
     Time time;
 
     @Test
-    public void delayedActionIsTriggeredTest(ModuleTestingHelper helper) {
+    public void delayedActionIsTriggeredTest(ModuleTestingHelper helper) throws IOException {
         helper.createClient();
         helper.runWhile(() -> Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).isEmpty());
 

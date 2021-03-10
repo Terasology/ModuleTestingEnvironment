@@ -9,13 +9,13 @@ import org.terasology.engine.core.TerasologyConstants;
 import org.terasology.engine.core.module.ModuleManager;
 import org.terasology.engine.core.subsystem.headless.mode.StateHeadlessSetup;
 import org.terasology.engine.game.GameManifest;
+import org.terasology.engine.registry.CoreRegistry;
+import org.terasology.engine.world.internal.WorldInfo;
+import org.terasology.engine.world.time.WorldTime;
 import org.terasology.module.DependencyResolver;
 import org.terasology.module.Module;
 import org.terasology.module.ResolutionResult;
 import org.terasology.naming.Name;
-import org.terasology.engine.registry.CoreRegistry;
-import org.terasology.engine.world.internal.WorldInfo;
-import org.terasology.engine.world.time.WorldTime;
 
 import java.util.Collection;
 import java.util.Set;
@@ -40,6 +40,9 @@ public class TestingStateHeadlessSetup extends StateHeadlessSetup {
 
         Set<Name> dependencyNames = dependencies.stream().map(Name::new).collect(Collectors.toSet());
         logger.info("Building manifest for module dependencies: {}", dependencyNames);
+
+        // Include the MTE module to provide world generators and suchlike.
+        dependencyNames.add(new Name("ModuleTestingEnvironment"));
 
         ResolutionResult result = resolver.resolve(dependencyNames);
         if (!result.isSuccess()) {
