@@ -8,15 +8,15 @@ import org.joml.Vector3i;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.terasology.context.Context;
-import org.terasology.entitySystem.entity.EntityManager;
-import org.terasology.logic.players.LocalPlayer;
-import org.terasology.logic.players.event.ResetCameraEvent;
+import org.terasology.engine.context.Context;
+import org.terasology.engine.entitySystem.entity.EntityManager;
+import org.terasology.engine.logic.players.LocalPlayer;
+import org.terasology.engine.logic.players.event.ResetCameraEvent;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
-import org.terasology.network.ClientComponent;
-import org.terasology.registry.In;
-import org.terasology.world.WorldProvider;
-import org.terasology.world.block.BlockManager;
+import org.terasology.engine.network.ClientComponent;
+import org.terasology.engine.registry.In;
+import org.terasology.engine.world.WorldProvider;
+import org.terasology.engine.world.block.BlockManager;
 
 import java.io.IOException;
 

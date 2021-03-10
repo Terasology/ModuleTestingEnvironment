@@ -4,18 +4,18 @@ package org.terasology.moduletestingenvironment;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terasology.engine.SimpleUri;
-import org.terasology.engine.TerasologyConstants;
-import org.terasology.engine.module.ModuleManager;
-import org.terasology.engine.subsystem.headless.mode.StateHeadlessSetup;
-import org.terasology.game.GameManifest;
+import org.terasology.engine.core.SimpleUri;
+import org.terasology.engine.core.TerasologyConstants;
+import org.terasology.engine.core.module.ModuleManager;
+import org.terasology.engine.core.subsystem.headless.mode.StateHeadlessSetup;
+import org.terasology.engine.game.GameManifest;
+import org.terasology.engine.registry.CoreRegistry;
+import org.terasology.engine.world.internal.WorldInfo;
+import org.terasology.engine.world.time.WorldTime;
 import org.terasology.module.DependencyResolver;
 import org.terasology.module.Module;
 import org.terasology.module.ResolutionResult;
 import org.terasology.naming.Name;
-import org.terasology.registry.CoreRegistry;
-import org.terasology.world.internal.WorldInfo;
-import org.terasology.world.time.WorldTime;
 
 import java.util.Collection;
 import java.util.Set;

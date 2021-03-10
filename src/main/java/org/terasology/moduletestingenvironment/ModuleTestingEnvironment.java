@@ -13,43 +13,44 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terasology.config.Config;
-import org.terasology.context.Context;
-import org.terasology.engine.GameEngine;
-import org.terasology.engine.TerasologyConstants;
-import org.terasology.engine.TerasologyEngine;
-import org.terasology.engine.TerasologyEngineBuilder;
-import org.terasology.engine.Time;
-import org.terasology.engine.modes.GameState;
-import org.terasology.engine.modes.StateIngame;
-import org.terasology.engine.modes.StateLoading;
-import org.terasology.engine.modes.StateMainMenu;
-import org.terasology.engine.module.ModuleManager;
-import org.terasology.engine.paths.PathManager;
-import org.terasology.engine.subsystem.EngineSubsystem;
-import org.terasology.engine.subsystem.headless.HeadlessAudio;
-import org.terasology.engine.subsystem.headless.HeadlessGraphics;
-import org.terasology.engine.subsystem.headless.HeadlessInput;
-import org.terasology.engine.subsystem.headless.HeadlessTimer;
-import org.terasology.engine.subsystem.headless.mode.HeadlessStateChangeListener;
-import org.terasology.engine.subsystem.lwjgl.LwjglAudio;
-import org.terasology.engine.subsystem.lwjgl.LwjglGraphics;
-import org.terasology.engine.subsystem.lwjgl.LwjglInput;
-import org.terasology.engine.subsystem.lwjgl.LwjglTimer;
-import org.terasology.engine.subsystem.openvr.OpenVRInput;
-import org.terasology.entitySystem.entity.EntityManager;
-import org.terasology.logic.location.LocationComponent;
+import org.terasology.engine.config.Config;
+import org.terasology.engine.config.SystemConfig;
+import org.terasology.engine.context.Context;
+import org.terasology.engine.core.GameEngine;
+import org.terasology.engine.core.TerasologyConstants;
+import org.terasology.engine.core.TerasologyEngine;
+import org.terasology.engine.core.TerasologyEngineBuilder;
+import org.terasology.engine.core.Time;
+import org.terasology.engine.core.modes.GameState;
+import org.terasology.engine.core.modes.StateIngame;
+import org.terasology.engine.core.modes.StateLoading;
+import org.terasology.engine.core.modes.StateMainMenu;
+import org.terasology.engine.core.module.ModuleManager;
+import org.terasology.engine.core.paths.PathManager;
+import org.terasology.engine.core.subsystem.EngineSubsystem;
+import org.terasology.engine.core.subsystem.headless.HeadlessAudio;
+import org.terasology.engine.core.subsystem.headless.HeadlessGraphics;
+import org.terasology.engine.core.subsystem.headless.HeadlessInput;
+import org.terasology.engine.core.subsystem.headless.HeadlessTimer;
+import org.terasology.engine.core.subsystem.headless.mode.HeadlessStateChangeListener;
+import org.terasology.engine.core.subsystem.lwjgl.LwjglAudio;
+import org.terasology.engine.core.subsystem.lwjgl.LwjglGraphics;
+import org.terasology.engine.core.subsystem.lwjgl.LwjglInput;
+import org.terasology.engine.core.subsystem.lwjgl.LwjglTimer;
+import org.terasology.engine.core.subsystem.openvr.OpenVRInput;
+import org.terasology.engine.entitySystem.entity.EntityManager;
+import org.terasology.engine.logic.location.LocationComponent;
+import org.terasology.engine.network.JoinStatus;
+import org.terasology.engine.network.NetworkSystem;
+import org.terasology.engine.registry.CoreRegistry;
+import org.terasology.engine.rendering.opengl.ScreenGrabber;
+import org.terasology.engine.rendering.world.viewDistance.ViewDistance;
+import org.terasology.engine.world.RelevanceRegionComponent;
+import org.terasology.engine.world.WorldProvider;
 import org.terasology.module.Module;
 import org.terasology.module.ModuleLoader;
 import org.terasology.module.ModuleMetadataJsonAdapter;
 import org.terasology.module.ModuleRegistry;
-import org.terasology.network.JoinStatus;
-import org.terasology.network.NetworkSystem;
-import org.terasology.registry.CoreRegistry;
-import org.terasology.rendering.opengl.ScreenGrabber;
-import org.terasology.rendering.world.viewDistance.ViewDistance;
-import org.terasology.world.RelevanceRegionComponent;
-import org.terasology.world.WorldProvider;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -447,7 +448,7 @@ public class ModuleTestingEnvironment {
 
     private TerasologyEngine createHost() throws IOException {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
-        terasologyEngine.getFromEngineContext(Config.class).getSystem().setWriteSaveGamesEnabled(false);
+        terasologyEngine.getFromEngineContext(SystemConfig.class).writeSaveGamesEnabled.set(false);
         terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
         terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies(), getWorldGeneratorUri()));
 
@@ -455,14 +456,14 @@ public class ModuleTestingEnvironment {
         terasologyEngine.subscribeToStateChange(() -> {
             GameState newState = terasologyEngine.getState();
             logger.debug("New engine state is {}", terasologyEngine.getState());
-            if (newState instanceof org.terasology.engine.modes.StateIngame) {
+            if (newState instanceof org.terasology.engine.core.modes.StateIngame) {
                 hostContext = newState.getContext();
                 if (hostContext == null) {
                     logger.warn("hostContext is NULL in engine state {}", newState);
                 }
                 doneLoading = true;
-            } else if (newState instanceof org.terasology.engine.modes.StateLoading) {
-                org.terasology.registry.CoreRegistry.put(org.terasology.engine.GameEngine.class, terasologyEngine);
+            } else if (newState instanceof org.terasology.engine.core.modes.StateLoading) {
+                org.terasology.engine.registry.CoreRegistry.put(GameEngine.class, terasologyEngine);
             }
         });
 
