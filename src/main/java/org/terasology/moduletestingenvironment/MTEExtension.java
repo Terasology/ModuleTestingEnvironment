@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.terasology.engine.module.ModuleManager;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.moduletestingenvironment.extension.UseWorldGenerator;
-import org.terasology.registry.In;
+import org.terasology.engine.registry.In;
 
 import java.io.IOException;
 import java.io.InputStream;

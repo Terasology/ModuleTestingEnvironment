@@ -15,7 +15,7 @@
  */
 package org.terasology.moduletestingenvironment.fixtures;
 
-import org.terasology.entitySystem.event.Event;
+import org.terasology.engine.entitySystem.event.Event;
 
 public class DummyEvent implements Event {
     public boolean dummy = false;

@@ -15,7 +15,7 @@
  */
 package org.terasology.moduletestingenvironment.fixtures;
 
-import org.terasology.entitySystem.Component;
+import org.terasology.engine.entitySystem.Component;
 
 public class DummyComponent implements Component {
     public boolean dummy = false;
