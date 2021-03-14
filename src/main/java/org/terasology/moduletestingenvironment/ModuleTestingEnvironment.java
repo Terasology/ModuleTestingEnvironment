@@ -47,6 +47,7 @@ import org.terasology.engine.rendering.opengl.ScreenGrabber;
 import org.terasology.engine.rendering.world.viewDistance.ViewDistance;
 import org.terasology.engine.world.RelevanceRegionComponent;
 import org.terasology.engine.world.WorldProvider;
+import org.terasology.module.DependencyInfo;
 import org.terasology.module.Module;
 import org.terasology.module.ModuleLoader;
 import org.terasology.module.ModuleMetadataJsonAdapter;
@@ -436,6 +437,11 @@ public class ModuleTestingEnvironment {
         try {
             Module module = moduleLoader.load(installPath);
             if (module != null) {
+                if (module.getMetadata().getDependencyInfo(TerasologyConstants.ENGINE_MODULE) == null) {
+                    DependencyInfo engineDependency = new DependencyInfo();
+                    engineDependency.setId(TerasologyConstants.ENGINE_MODULE);
+                    module.getMetadata().getDependencies().add(engineDependency);
+                }
                 registry.add(module);
                 logger.info("Added install path as module: {}", installPath);
             } else {
