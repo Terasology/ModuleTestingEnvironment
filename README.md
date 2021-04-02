@@ -2,6 +2,20 @@
 
 A test helper to instantiate a full headless TerasologyEngine instance in JUnit tests.
 
+## ⚠️ Issues
+
+On using MTE tests, you might face the following error:
+```
+java.lang.IllegalStateException: Modules only available if resolution was successful
+```
+In the logs, you should see something along the following lines:
+```
+08:11:52.856 [Test worker] ERROR org.terasology.moduletestingenvironment.TestingStateHeadlessSetup - Unable to resolve modules: [engine, DynamicCities, ModuleTestingEnvironment]
+```
+
+We do not know, yet, why this happens, but hope that with the migration to gestalt v7, the situation will improve or at least clarify a bit.
+Until the migration is complete, we suggest disabling the test using the `@Disable` annotation.
+
 ## Usage
 
 For complete docs please see the
