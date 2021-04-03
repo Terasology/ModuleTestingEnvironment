@@ -8,6 +8,7 @@ import com.google.common.collect.Sets;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
+import org.terasology.gestalt.module.Module;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,10 +48,9 @@ import org.terasology.engine.rendering.opengl.ScreenGrabber;
 import org.terasology.engine.rendering.world.viewDistance.ViewDistance;
 import org.terasology.engine.world.RelevanceRegionComponent;
 import org.terasology.engine.world.WorldProvider;
-import org.terasology.module.Module;
-import org.terasology.module.ModuleLoader;
-import org.terasology.module.ModuleMetadataJsonAdapter;
-import org.terasology.module.ModuleRegistry;
+import org.terasology.gestalt.module.ModuleMetadataJsonAdapter;
+import org.terasology.gestalt.module.ModuleRegistry;
+
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -430,11 +430,12 @@ public class ModuleTestingEnvironment {
         ModuleManager moduleManager = terasologyEngine.getFromEngineContext(ModuleManager.class);
         ModuleRegistry registry = moduleManager.getRegistry();
         ModuleMetadataJsonAdapter metadataReader = moduleManager.getModuleMetadataReader();
-        ModuleLoader moduleLoader = new ModuleLoader(metadataReader);
-        moduleLoader.setModuleInfoPath(TerasologyConstants.MODULE_INFO_FILENAME);
+        moduleManager.getModuleFactory().getModuleMetadataLoaderMap()
+                .put(TerasologyConstants.MODULE_INFO_FILENAME.toString(), metadataReader);
+
 
         try {
-            Module module = moduleLoader.load(installPath);
+            Module module = moduleManager.getModuleFactory().createModule(installPath.toFile());
             if (module != null) {
                 registry.add(module);
                 logger.info("Added install path as module: {}", installPath);
