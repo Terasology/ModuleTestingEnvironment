@@ -56,12 +56,16 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
-        if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
+        Class<?> testClass = context.getRequiredTestClass();
+        if (testClass.isAnnotationPresent(Nested.class)) {
             // nested classes get torn down in the parent
             return;
         }
 
-        helperContexts.get(context.getRequiredTestClass()).tearDown();
+        // Could be null if an exception interrupts before setup is complete.
+        if (helperContexts.get(testClass) != null) {
+            helperContexts.get(testClass).tearDown();
+        }
     }
 
     @Override
