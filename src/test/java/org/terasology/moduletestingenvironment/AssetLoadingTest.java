@@ -16,6 +16,7 @@
 package org.terasology.moduletestingenvironment;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.assets.management.AssetManager;
@@ -27,6 +28,7 @@ import org.terasology.engine.world.block.BlockManager;
 
 import java.util.Optional;
 
+@Tag("MteTest")
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class AssetLoadingTest {

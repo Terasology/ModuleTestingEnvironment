@@ -5,6 +5,7 @@ package org.terasology.moduletestingenvironment;
 import com.google.common.collect.Lists;
 import org.joml.Vector3i;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.engine.context.Context;
@@ -20,7 +21,7 @@ import org.terasology.engine.world.block.BlockManager;
 
 import java.io.IOException;
 
-
+@Tag("MteTest")
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class ExampleTest {

@@ -5,6 +5,7 @@ package org.terasology.moduletestingenvironment.delay;
 
 import com.google.common.collect.Lists;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import org.terasology.engine.registry.In;
 
 import java.io.IOException;
 
+@Tag("MteTest")
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class DelayManagerTest {
