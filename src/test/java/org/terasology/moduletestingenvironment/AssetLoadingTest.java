@@ -1,32 +1,20 @@
-/*
- * Copyright 2020 MovingBlocks
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2021 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.terasology.assets.management.AssetManager;
 import org.terasology.engine.entitySystem.prefab.Prefab;
-import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.world.block.Block;
 import org.terasology.engine.world.block.BlockManager;
+import org.terasology.gestalt.assets.management.AssetManager;
+import org.terasology.moduletestingenvironment.extension.Dependencies;
 
-import java.util.Optional;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.terasology.engine.testUtil.Assertions.assertNotEmpty;
 
 @Tag("MteTest")
 @ExtendWith(MTEExtension.class)
@@ -41,13 +29,13 @@ public class AssetLoadingTest {
     @Test
     public void blockPrefabLoadingTest() {
         Block block = blockManager.getBlock("engine:air");
-        Assertions.assertNotNull(block);
-        Assertions.assertEquals(0, block.getHardness());
-        Assertions.assertEquals("Air", block.getDisplayName());
+        assertNotNull(block);
+        assertEquals(0, block.getHardness());
+        assertEquals("Air", block.getDisplayName());
     }
 
     @Test
     public void simpleLoadingTest() {
-        Assertions.assertNotEquals(assetManager.getAsset("engine:test", Prefab.class), Optional.empty());
+        assertNotEmpty(assetManager.getAsset("engine:test", Prefab.class));
     }
 }
