@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.engine.context.Context;
@@ -24,6 +25,7 @@ import java.io.IOException;
 /**
  * The ExampleTest but using the old (deprecated) API
  */
+@Tag("MteTest")
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class DeprecationTest {

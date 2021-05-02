@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.engine.entitySystem.prefab.Prefab;
@@ -15,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.terasology.engine.testUtil.Assertions.assertNotEmpty;
 
+@Tag("MteTest")
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class AssetLoadingTest {

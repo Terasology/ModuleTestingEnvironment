@@ -3,6 +3,7 @@
 package org.terasology.moduletestingenvironment;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.engine.context.Context;
@@ -13,6 +14,7 @@ import org.terasology.moduletestingenvironment.extension.Dependencies;
 import java.io.IOException;
 import java.util.List;
 
+@Tag("MteTest")
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class ClientConnectionTest {
