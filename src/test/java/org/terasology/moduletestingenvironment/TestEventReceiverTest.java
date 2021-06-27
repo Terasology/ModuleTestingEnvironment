@@ -40,7 +40,8 @@ public class TestEventReceiverTest {
         AtomicInteger callbackInvocations = new AtomicInteger();
         BiConsumer<DummyEvent, EntityRef> callback = (event, entity) -> callbackInvocations.addAndGet(1);
 
-        try (TestEventReceiver<DummyEvent> receiver = new TestEventReceiver<>(getHostContext(), DummyEvent.class, callback, DummyComponent.class, LocationComponent.class)) {
+        try (TestEventReceiver<DummyEvent> receiver =
+                     new TestEventReceiver<>(getHostContext(), DummyEvent.class, callback, DummyComponent.class, LocationComponent.class)) {
             entityWithDummy.send(new DummyEvent());
             entityWithDummyAndLocation.send(new DummyEvent());
             List<EntityRef> actualEntities = receiver.getEntityRefs();
