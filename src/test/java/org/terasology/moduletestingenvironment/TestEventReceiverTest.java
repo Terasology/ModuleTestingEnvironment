@@ -107,7 +107,8 @@ public class TestEventReceiverTest {
      * @return the item
      */
     private EntityRef sendEvent() {
-        final EntityRef entityRef = getHostContext().get(EntityManager.class).create();
+        final EntityManager entityManager = getHostContext().get(EntityManager.class);
+        final EntityRef entityRef = entityManager.create(new DummyComponent());
         entityRef.send(new DummyEvent());
         return entityRef;
     }

@@ -26,8 +26,7 @@ import org.terasology.engine.registry.Share;
 @RegisterSystem(RegisterMode.AUTHORITY)
 public class DummySystem extends BaseComponentSystem {
     @ReceiveEvent
-    public void onDummyEvent(DummyEvent event, EntityRef entity) {
-        DummyComponent component = entity.getComponent(DummyComponent.class);
+    public void onDummyEvent(DummyEvent event, EntityRef entity, DummyComponent component) {
         component.dummy = true;
         entity.saveComponent(component);
     }
