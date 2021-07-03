@@ -8,7 +8,6 @@ import com.google.common.collect.Sets;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
-import org.terasology.gestalt.module.Module;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,11 +45,12 @@ import org.terasology.engine.network.NetworkSystem;
 import org.terasology.engine.registry.CoreRegistry;
 import org.terasology.engine.rendering.opengl.ScreenGrabber;
 import org.terasology.engine.rendering.world.viewDistance.ViewDistance;
+import org.terasology.engine.testUtil.WithUnittestModule;
 import org.terasology.engine.world.RelevanceRegionComponent;
 import org.terasology.engine.world.WorldProvider;
+import org.terasology.gestalt.module.Module;
 import org.terasology.gestalt.module.ModuleMetadataJsonAdapter;
 import org.terasology.gestalt.module.ModuleRegistry;
-
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -375,6 +375,7 @@ public class ModuleTestingEnvironment {
     private TerasologyEngine createHeadlessEngine() throws IOException {
         TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder();
         terasologyEngineBuilder
+                .add(new WithUnittestModule())
                 .add(new HeadlessGraphics())
                 .add(new HeadlessTimer())
                 .add(new HeadlessAudio())
@@ -386,6 +387,7 @@ public class ModuleTestingEnvironment {
     private TerasologyEngine createHeadedEngine() throws IOException {
         EngineSubsystem audio = new LwjglAudio();
         TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder()
+                .add(new WithUnittestModule())
                 .add(audio)
                 .add(new LwjglGraphics())
                 .add(new LwjglTimer())
