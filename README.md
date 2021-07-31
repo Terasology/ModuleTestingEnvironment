@@ -18,11 +18,10 @@ Until the migration is complete, we suggest disabling the test using the `@Disab
 
 ## Usage
 
-For complete docs please see the
-[documentation on Github Pages](https://terasology.github.io/ModuleTestingEnvironment/org/terasology/moduletestingenvironment/MTEExtension.html)
+For complete JavaDoc please see the [documentation on Github Pages](https://terasology.github.io/ModuleTestingEnvironment/).
 
 For more examples see
-[the test suite](https://github.com/terasology/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment)
+[the test suite](https://github.com/terasology/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment).
 
 Here's an example taken from the test suite:
 
