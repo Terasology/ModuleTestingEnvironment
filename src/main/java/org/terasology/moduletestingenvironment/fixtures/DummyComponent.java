@@ -9,7 +9,7 @@ public class DummyComponent implements Component<DummyComponent> {
     public boolean dummy = false;
 
     @Override
-    public void copy(DummyComponent other) {
+    public void copyFrom(DummyComponent other) {
         this.dummy = other.dummy;
     }
 }
