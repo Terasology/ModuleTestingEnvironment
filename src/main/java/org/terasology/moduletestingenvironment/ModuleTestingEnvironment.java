@@ -374,7 +374,7 @@ public class ModuleTestingEnvironment {
     private TerasologyEngine createHeadlessEngine() throws IOException {
         TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder();
         terasologyEngineBuilder
-//                .add(new WithUnittestModule())
+                .add(new WithUnittestModule())
                 .add(new HeadlessGraphics())
                 .add(new HeadlessTimer())
                 .add(new HeadlessAudio())
@@ -386,7 +386,7 @@ public class ModuleTestingEnvironment {
     private TerasologyEngine createHeadedEngine() throws IOException {
         EngineSubsystem audio = new LwjglAudio();
         TerasologyEngineBuilder terasologyEngineBuilder = new TerasologyEngineBuilder()
-//                .add(new WithUnittestModule())
+                .add(new WithUnittestModule())
                 .add(audio)
                 .add(new LwjglGraphics())
                 .add(new LwjglTimer())
