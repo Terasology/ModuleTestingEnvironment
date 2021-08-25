@@ -18,6 +18,7 @@ import org.terasology.engine.config.SystemConfig;
 import org.terasology.engine.context.Context;
 import org.terasology.engine.core.GameEngine;
 import org.terasology.engine.core.PathManager;
+import org.terasology.engine.core.PathManagerProvider;
 import org.terasology.engine.core.TerasologyConstants;
 import org.terasology.engine.core.TerasologyEngine;
 import org.terasology.engine.core.TerasologyEngineBuilder;
@@ -45,6 +46,7 @@ import org.terasology.engine.network.NetworkSystem;
 import org.terasology.engine.registry.CoreRegistry;
 import org.terasology.engine.rendering.opengl.ScreenGrabber;
 import org.terasology.engine.rendering.world.viewDistance.ViewDistance;
+import org.terasology.engine.testUtil.WithUnittestModule;
 import org.terasology.engine.world.RelevanceRegionComponent;
 import org.terasology.engine.world.WorldProvider;
 import org.terasology.gestalt.module.Module;
@@ -54,11 +56,14 @@ import org.terasology.gestalt.module.ModuleRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * Base class for tests involving full {@link TerasologyEngine} instances. View the tests included in this module for
@@ -154,6 +159,9 @@ public class ModuleTestingEnvironment {
     private final List<TerasologyEngine> engines = Lists.newArrayList();
     private long safetyTimeoutMs = DEFAULT_SAFETY_TIMEOUT;
 
+    PathManager pathManager;
+    PathManagerProvider.Cleaner pathManagerCleaner;
+
     /**
      * Set up and start the engine as configured via this environment.
      * <p>
@@ -163,6 +171,7 @@ public class ModuleTestingEnvironment {
      */
     @BeforeEach
     public void setup() throws Exception {
+        mockPathManager();
         host = createHost();
         ScreenGrabber grabber = mock(ScreenGrabber.class);
         hostContext.put(ScreenGrabber.class, grabber);
@@ -179,6 +188,13 @@ public class ModuleTestingEnvironment {
         engines.forEach(TerasologyEngine::shutdown);
         engines.forEach(TerasologyEngine::cleanup);
         engines.clear();
+        try {
+            pathManagerCleaner.close();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
         host = null;
         hostContext = null;
     }
@@ -397,6 +413,8 @@ public class ModuleTestingEnvironment {
     }
 
     private TerasologyEngine createEngine(TerasologyEngineBuilder terasologyEngineBuilder) throws IOException {
+        System.setProperty(ModuleManager.LOAD_CLASSPATH_MODULES_PROPERTY, "true");
+
         // create temporary home paths so the MTE engines don't overwrite config/save files in your real home path
         Path path = Files.createTempDirectory("terasology-mte-engine");
         PathManager pathManager = PathManager.getInstance();
@@ -447,6 +465,14 @@ public class ModuleTestingEnvironment {
             logger.warn("Could not read install path as module at " + installPath);
         }
     }
+
+    protected void mockPathManager() {
+        PathManager originalPathManager = PathManager.getInstance();
+        pathManager = spy(originalPathManager);
+        when(pathManager.getModulePaths()).thenReturn(Collections.emptyList());
+        pathManagerCleaner = new PathManagerProvider.Cleaner(originalPathManager, pathManager);
+        PathManagerProvider.setPathManager(pathManager);
+    };
 
     private TerasologyEngine createHost() throws IOException {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
