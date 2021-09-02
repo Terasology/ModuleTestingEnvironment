@@ -25,10 +25,8 @@ import org.terasology.moduletestingenvironment.extension.UseWorldGenerator;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Junit 5 Extension for using {@link ModuleTestingHelper} in your test.
@@ -50,8 +48,6 @@ import java.util.Map;
 public class MTEExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver, TestInstancePostProcessor {
 
     static final String LOGBACK_RESOURCE = "default-logback.xml";
-
-    protected final Map<Class<?>, ModuleTestingHelper> helperContexts = new HashMap<>();
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
@@ -144,12 +140,17 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         Class<?> contextClass = context.getRequiredTestClass().isAnnotationPresent(Nested.class)
             ? context.getRequiredTestClass().getEnclosingClass()
             : context.getRequiredTestClass();
-        return helperContexts.computeIfAbsent(contextClass, MTEExtension::setupHelper);
+        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(getClass(), contextClass));
+        return store.getOrComputeIfAbsent(ModuleTestingHelper.class, MTEExtension::setupHelper, ModuleTestingHelper.class);
     }
 
     private void disposeHelper(ExtensionContext context) {
+        Class<?> contextClass = context.getRequiredTestClass().isAnnotationPresent(Nested.class)
+                ? context.getRequiredTestClass().getEnclosingClass()
+                : context.getRequiredTestClass();
+        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(getClass(), contextClass));
         // Could be null if an exception interrupts before setup is complete.
-        ModuleTestingHelper helper = helperContexts.remove(context.getRequiredTestClass());
+        ModuleTestingHelper helper = store.remove(ModuleTestingHelper.class, ModuleTestingHelper.class);
         if (helper != null) {
             helper.tearDown();
         }
