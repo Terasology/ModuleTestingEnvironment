@@ -59,11 +59,7 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
             // nested classes get torn down in the parent
             return;
         }
-
-        // Could be null if an exception interrupts before setup is complete.
-        if (getHelper(context) != null) {
-            getHelper(context).tearDown();
-        }
+        disposeHelper(context);
     }
 
     @Override
@@ -72,7 +68,7 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
             return;  // nested classes get set up in the parent
         }
         setupLogging();
-        setHelper(context, setupHelper(context.getRequiredTestClass()));
+        getHelper(context);
     }
 
     @Override
@@ -124,7 +120,7 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         }
     }
 
-    private ModuleTestingHelper setupHelper(Class<?> testClass) throws Exception {
+    private static ModuleTestingHelper setupHelper(Class<?> testClass) {
         Dependencies dependencies = testClass.getAnnotation(Dependencies.class);
         UseWorldGenerator useWorldGenerator = testClass.getAnnotation(UseWorldGenerator.class);
         ModuleTestingHelper helperContext = new ModuleTestingHelper();
@@ -134,7 +130,13 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         if (useWorldGenerator != null) {
             helperContext.setWorldGeneratorUri(useWorldGenerator.value());
         }
-        helperContext.setup();
+        try {
+            helperContext.setup();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return helperContext;
     }
 
@@ -142,11 +144,15 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         Class<?> contextClass = context.getRequiredTestClass().isAnnotationPresent(Nested.class)
             ? context.getRequiredTestClass().getEnclosingClass()
             : context.getRequiredTestClass();
-        return helperContexts.get(contextClass);
+        return helperContexts.computeIfAbsent(contextClass, MTEExtension::setupHelper);
     }
 
-    private void setHelper(ExtensionContext context, ModuleTestingHelper helperContext) {
-        helperContexts.put(context.getRequiredTestClass(), helperContext);
+    private void disposeHelper(ExtensionContext context) {
+        // Could be null if an exception interrupts before setup is complete.
+        ModuleTestingHelper helper = helperContexts.remove(context.getRequiredTestClass());
+        if (helper != null) {
+            helper.tearDown();
+        }
     }
 
     /**
