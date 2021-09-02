@@ -127,14 +127,17 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
     }
 
     private ModuleTestingHelper getHelper(ExtensionContext context) {
-        Class<?> contextClass = context.getRequiredTestClass().isAnnotationPresent(Nested.class)
-            ? context.getRequiredTestClass().getEnclosingClass()
-            : context.getRequiredTestClass();
+        Class<?> contextClass = getTopTestClass(context);
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(getClass(), contextClass));
         HelperCleaner autoCleaner = store.getOrComputeIfAbsent(
                 HelperCleaner.class, k -> new HelperCleaner(setupHelper(contextClass)),
                 HelperCleaner.class);
         return autoCleaner.helper;
+    }
+
+    protected static Class<?> getTopTestClass(ExtensionContext context) {
+        Class<?> testClass = context.getRequiredTestClass();
+        return testClass.isAnnotationPresent(Nested.class) ? testClass.getEnclosingClass() : testClass;
     }
 
     /**
