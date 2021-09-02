@@ -3,10 +3,7 @@
 
 package org.terasology.moduletestingenvironment;
 
-import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterResolver;
-import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 
 /**
  * Subclass of {@link MTEExtension} which isolates all test cases by creating a new engine for each test. This is much
@@ -15,16 +12,9 @@ import org.junit.jupiter.api.extension.TestInstancePostProcessor;
  * <p>
  * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
-public class IsolatedMTEExtension extends MTEExtension implements BeforeAllCallback, ParameterResolver, TestInstancePostProcessor {
+public class IsolatedMTEExtension extends MTEExtension {
     @Override
-    public void beforeAll(ExtensionContext context) {
-        // don't call super
-    }
-
-    @Override
-    public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) {
-        // beforeEach would be run after postProcess so postProcess would NPE, so we initialize the MTE here beforehand
-        super.beforeAll(extensionContext);
-        super.postProcessTestInstance(testInstance, extensionContext);
+    protected ExtensionContext.Namespace getNamespace(ExtensionContext context) {
+        return ExtensionContext.Namespace.create(MTEExtension.class, context.getTestMethod());
     }
 }

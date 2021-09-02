@@ -54,7 +54,6 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
             return;  // nested classes get set up in the parent
         }
         setupLogging();
-        getHelper(context);
     }
 
     @Override
@@ -180,7 +179,7 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
     }
 
     static class HelperCleaner implements ExtensionContext.Store.CloseableResource {
-        final ModuleTestingHelper helper;
+        ModuleTestingHelper helper;
 
         protected HelperCleaner(ModuleTestingHelper helper) {
             this.helper = helper;
@@ -189,6 +188,7 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
         @Override
         public void close() {
             helper.tearDown();
+            helper = null;
         }
     }
 }
