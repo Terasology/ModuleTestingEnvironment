@@ -69,23 +69,10 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
         if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
-            // nested classes get set up in the parent
-            return;
+            return;  // nested classes get set up in the parent
         }
-
         setupLogging();
-
-        Dependencies dependencies = context.getRequiredTestClass().getAnnotation(Dependencies.class);
-        UseWorldGenerator useWorldGenerator = context.getRequiredTestClass().getAnnotation(UseWorldGenerator.class);
-        ModuleTestingHelper helperContext = new ModuleTestingHelper();
-        if (dependencies != null) {
-            helperContext.setDependencies(Sets.newHashSet(dependencies.value()));
-        }
-        if (useWorldGenerator != null) {
-            helperContext.setWorldGeneratorUri(useWorldGenerator.value());
-        }
-        helperContext.setup();
-        setHelper(context, helperContext);
+        setHelper(context, setupHelper(context.getRequiredTestClass()));
     }
 
     @Override
@@ -135,6 +122,20 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         if (!exceptionList.isEmpty()) {
             throw new MultipleFailuresError("I cannot provide DI instances:", exceptionList);
         }
+    }
+
+    private ModuleTestingHelper setupHelper(Class<?> testClass) throws Exception {
+        Dependencies dependencies = testClass.getAnnotation(Dependencies.class);
+        UseWorldGenerator useWorldGenerator = testClass.getAnnotation(UseWorldGenerator.class);
+        ModuleTestingHelper helperContext = new ModuleTestingHelper();
+        if (dependencies != null) {
+            helperContext.setDependencies(Sets.newHashSet(dependencies.value()));
+        }
+        if (useWorldGenerator != null) {
+            helperContext.setWorldGeneratorUri(useWorldGenerator.value());
+        }
+        helperContext.setup();
+        return helperContext;
     }
 
     private ModuleTestingHelper getHelper(ExtensionContext context) {
