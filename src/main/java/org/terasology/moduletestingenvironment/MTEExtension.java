@@ -9,7 +9,6 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.util.StatusPrinter;
 import com.google.common.collect.Sets;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -45,21 +44,12 @@ import java.util.List;
  * <p>
  * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
-public class MTEExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver, TestInstancePostProcessor {
+public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestInstancePostProcessor {
 
     static final String LOGBACK_RESOURCE = "default-logback.xml";
 
     @Override
-    public void afterAll(ExtensionContext context) throws Exception {
-        if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
-            // nested classes get torn down in the parent
-            return;
-        }
-        disposeHelper(context);
-    }
-
-    @Override
-    public void beforeAll(ExtensionContext context) throws Exception {
+    public void beforeAll(ExtensionContext context) {
         if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
             return;  // nested classes get set up in the parent
         }
@@ -91,7 +81,7 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
     }
 
     @Override
-    public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) throws Exception {
+    public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) {
         ModuleTestingHelper helper = getHelper(extensionContext);
         List<IllegalAccessException> exceptionList = new LinkedList<>();
         Class<?> type = testInstance.getClass();
@@ -141,19 +131,10 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
             ? context.getRequiredTestClass().getEnclosingClass()
             : context.getRequiredTestClass();
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(getClass(), contextClass));
-        return store.getOrComputeIfAbsent(ModuleTestingHelper.class, MTEExtension::setupHelper, ModuleTestingHelper.class);
-    }
-
-    private void disposeHelper(ExtensionContext context) {
-        Class<?> contextClass = context.getRequiredTestClass().isAnnotationPresent(Nested.class)
-                ? context.getRequiredTestClass().getEnclosingClass()
-                : context.getRequiredTestClass();
-        ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(getClass(), contextClass));
-        // Could be null if an exception interrupts before setup is complete.
-        ModuleTestingHelper helper = store.remove(ModuleTestingHelper.class, ModuleTestingHelper.class);
-        if (helper != null) {
-            helper.tearDown();
-        }
+        HelperCleaner autoCleaner = store.getOrComputeIfAbsent(
+                HelperCleaner.class, k -> new HelperCleaner(setupHelper(contextClass)),
+                HelperCleaner.class);
+        return autoCleaner.helper;
     }
 
     /**
@@ -188,6 +169,19 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
             throw new RuntimeException("Error during logger configuration", e);
         } finally {
             StatusPrinter.printInCaseOfErrorsOrWarnings(context);
+        }
+    }
+
+    static class HelperCleaner implements ExtensionContext.Store.CloseableResource {
+        final ModuleTestingHelper helper;
+
+        protected HelperCleaner(ModuleTestingHelper helper) {
+            this.helper = helper;
+        }
+
+        @Override
+        public void close() {
+            helper.tearDown();
         }
     }
 }

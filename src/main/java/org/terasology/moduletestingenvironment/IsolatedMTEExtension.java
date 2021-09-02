@@ -1,10 +1,8 @@
-// Copyright 2020 The Terasology Foundation
+// Copyright 2021 The Terasology Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 package org.terasology.moduletestingenvironment;
 
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
@@ -17,25 +15,14 @@ import org.junit.jupiter.api.extension.TestInstancePostProcessor;
  * <p>
  * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
-public class IsolatedMTEExtension extends MTEExtension implements BeforeAllCallback, AfterAllCallback,
-        AfterEachCallback, ParameterResolver, TestInstancePostProcessor {
+public class IsolatedMTEExtension extends MTEExtension implements BeforeAllCallback, ParameterResolver, TestInstancePostProcessor {
     @Override
-    public void afterAll(ExtensionContext context) throws Exception {
+    public void beforeAll(ExtensionContext context) {
         // don't call super
     }
 
     @Override
-    public void beforeAll(ExtensionContext context) throws Exception {
-        // don't call super
-    }
-
-    @Override
-    public void afterEach(ExtensionContext context) throws Exception {
-        super.afterAll(context);
-    }
-
-    @Override
-    public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) throws Exception {
+    public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) {
         // beforeEach would be run after postProcess so postProcess would NPE, so we initialize the MTE here beforehand
         super.beforeAll(extensionContext);
         super.postProcessTestInstance(testInstance, extensionContext);

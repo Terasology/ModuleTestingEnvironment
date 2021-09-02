@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,8 +23,9 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Tag("MteTest")
 @ExtendWith(IsolatedMTEExtension.class)
-@Dependencies({"engine", "ModuleTestingEnvironment"})
+@Dependencies("ModuleTestingEnvironment")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class IsolatedEngineTest {
     private final Set<EntityManager> entityManagerSet = Sets.newHashSet();
