@@ -106,7 +106,8 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
         }
     }
 
-    private static ModuleTestingHelper setupHelper(Class<?> testClass) {
+    private static ModuleTestingHelper setupHelper(ExtensionContext context) {
+        Class<?> testClass = getTopTestClass(context);
         Dependencies dependencies = testClass.getAnnotation(Dependencies.class);
         UseWorldGenerator useWorldGenerator = testClass.getAnnotation(UseWorldGenerator.class);
         ModuleTestingHelper helperContext = new ModuleTestingHelper();
@@ -130,7 +131,7 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
         Class<?> contextClass = getTopTestClass(context);
         ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(getClass(), contextClass));
         HelperCleaner autoCleaner = store.getOrComputeIfAbsent(
-                HelperCleaner.class, k -> new HelperCleaner(setupHelper(contextClass)),
+                HelperCleaner.class, k -> new HelperCleaner(setupHelper(context)),
                 HelperCleaner.class);
         return autoCleaner.helper;
     }
