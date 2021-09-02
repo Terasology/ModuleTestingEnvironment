@@ -55,15 +55,14 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
-        Class<?> testClass = context.getRequiredTestClass();
-        if (testClass.isAnnotationPresent(Nested.class)) {
+        if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
             // nested classes get torn down in the parent
             return;
         }
 
         // Could be null if an exception interrupts before setup is complete.
-        if (helperContexts.get(testClass) != null) {
-            helperContexts.get(testClass).tearDown();
+        if (getHelper(context) != null) {
+            getHelper(context).tearDown();
         }
     }
 
@@ -71,8 +70,6 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
     public void beforeAll(ExtensionContext context) throws Exception {
         if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
             // nested classes get set up in the parent
-            ModuleTestingHelper parentHelper = helperContexts.get(context.getRequiredTestClass().getEnclosingClass());
-            helperContexts.put(context.getRequiredTestClass(), parentHelper);
             return;
         }
 
@@ -88,12 +85,12 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
             helperContext.setWorldGeneratorUri(useWorldGenerator.value());
         }
         helperContext.setup();
-        helperContexts.put(context.getRequiredTestClass(), helperContext);
+        setHelper(context, helperContext);
     }
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
+        ModuleTestingHelper helper = getHelper(extensionContext);
         return helper.getHostContext().get(parameterContext.getParameter().getType()) != null
                 || parameterContext.getParameter().getType().equals(ModuleTestingEnvironment.class)
                 || parameterContext.getParameter().getType().equals(ModuleTestingHelper.class);
@@ -101,7 +98,7 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
 
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
+        ModuleTestingHelper helper = getHelper(extensionContext);
         Class<?> type = parameterContext.getParameter().getType();
 
         return getDIInstance(helper, type);
@@ -116,7 +113,7 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
 
     @Override
     public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) throws Exception {
-        ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
+        ModuleTestingHelper helper = getHelper(extensionContext);
         List<IllegalAccessException> exceptionList = new LinkedList<>();
         Class<?> type = testInstance.getClass();
         while (type != null) {
@@ -138,6 +135,17 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         if (!exceptionList.isEmpty()) {
             throw new MultipleFailuresError("I cannot provide DI instances:", exceptionList);
         }
+    }
+
+    private ModuleTestingHelper getHelper(ExtensionContext context) {
+        Class<?> contextClass = context.getRequiredTestClass().isAnnotationPresent(Nested.class)
+            ? context.getRequiredTestClass().getEnclosingClass()
+            : context.getRequiredTestClass();
+        return helperContexts.get(contextClass);
+    }
+
+    private void setHelper(ExtensionContext context, ModuleTestingHelper helperContext) {
+        helperContexts.put(context.getRequiredTestClass(), helperContext);
     }
 
     /**
