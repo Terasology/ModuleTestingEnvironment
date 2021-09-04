@@ -47,7 +47,7 @@ public class IsolatedEngineTest {
         entityManagerSet.add(entityManager);
 
         entity.send(new DummyEvent());
-        assertTrue(entity.getComponent(DummyComponent.class).dummy);
+        assertTrue(entity.getComponent(DummyComponent.class).eventReceived);
     }
 
     @Test
@@ -57,6 +57,6 @@ public class IsolatedEngineTest {
         assertFalse(entityManagerSet.contains(entityManager));
         entityManagerSet.add(entityManager);
 
-        assertFalse(entity.getComponent(DummyComponent.class).dummy);
+        assertFalse(entity.getComponent(DummyComponent.class).eventReceived);
     }
 }
