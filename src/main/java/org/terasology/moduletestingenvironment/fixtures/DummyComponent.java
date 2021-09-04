@@ -7,6 +7,7 @@ import org.terasology.gestalt.entitysystem.component.Component;
 
 public class DummyComponent implements Component<DummyComponent> {
     public boolean eventReceived = false;
+    public String name;
 
     @Override
     public void copyFrom(DummyComponent other) {
