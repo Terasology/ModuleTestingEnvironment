@@ -15,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 public class IsolatedMTEExtension extends MTEExtension {
     @Override
     protected ExtensionContext.Namespace getNamespace(ExtensionContext context) {
+        // Resources are not shared between namespaces. We increase isolation by using a different
+        // namespace for every test method.
         return ExtensionContext.Namespace.create(MTEExtension.class, context.getTestMethod());
     }
 }

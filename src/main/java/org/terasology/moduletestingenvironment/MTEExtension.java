@@ -105,6 +105,15 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
         }
     }
 
+    /**
+     * Create a ModuleTestingHelper configured for this test.
+     * <p>
+     * The new ModuleTestingHelper instance is configured using the {@link Dependencies} and {@link UseWorldGenerator}
+     * annotations for the test class.
+     *
+     * @param context for the current test
+     * @return new instance
+     */
     private static ModuleTestingHelper setupHelper(ExtensionContext context) {
         Class<?> testClass = getTopTestClass(context);
         Dependencies dependencies = testClass.getAnnotation(Dependencies.class);
@@ -126,6 +135,16 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
         return helperContext;
     }
 
+    /**
+     * Get the ModuleTestingHelper for this test.
+     * <p>
+     * This will {@linkplain #setupHelper create a new instance} when necessary. It will be stored in the
+     * {@link ExtensionContext} for reuse between tests that wish to avoid the expense of creating a new
+     * instance every time, and will be disposed of when the context closes.
+     *
+     * @param context for the current test
+     * @return configured for this test
+     */
     private ModuleTestingHelper getHelper(ExtensionContext context) {
         ExtensionContext.Store store = context.getStore(getNamespace(context));
         HelperCleaner autoCleaner = store.getOrComputeIfAbsent(
@@ -134,10 +153,25 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
         return autoCleaner.helper;
     }
 
+    /** The Namespace to store the ModuleTestingHelper state in. */
     protected ExtensionContext.Namespace getNamespace(ExtensionContext context) {
-        return ExtensionContext.Namespace.create(MTEExtension.class, getTopTestClass(context));
+        return ExtensionContext.Namespace.create(
+                MTEExtension.class,  // Start with this Extension, so it's clear where this came from.
+                getTopTestClass(context)  // one namespace per test class
+        );
     }
 
+    /**
+     * The outermost class defining this test.
+     * <p>
+     * For <a href="https://junit.org/junit5/docs/current/user-guide/#writing-tests-nested">nested tests</a>, this
+     * returns the outermost class in which this test is nested.
+     * <p>
+     * Most tests are not nested, in which case this returns the class defining the test.
+     *
+     * @param context for the current test
+     * @return a test class
+     */
     protected static Class<?> getTopTestClass(ExtensionContext context) {
         Class<?> testClass = context.getRequiredTestClass();
         return testClass.isAnnotationPresent(Nested.class) ? testClass.getEnclosingClass() : testClass;
@@ -178,6 +212,12 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
         }
     }
 
+    /**
+     * Manages a ModuleTestingHelper for storage in an ExtensionContext.
+     * <p>
+     * Implements {@link ExtensionContext.Store.CloseableResource CloseableResource} to dispose of
+     * the {@link ModuleTestingHelper} when the context is closed.
+     */
     static class HelperCleaner implements ExtensionContext.Store.CloseableResource {
         ModuleTestingHelper helper;
 
