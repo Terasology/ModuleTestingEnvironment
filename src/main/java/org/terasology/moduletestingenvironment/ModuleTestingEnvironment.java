@@ -54,6 +54,7 @@ import org.terasology.gestalt.module.ModuleMetadataJsonAdapter;
 import org.terasology.gestalt.module.ModuleRegistry;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -166,13 +167,15 @@ public class ModuleTestingEnvironment {
      * Set up and start the engine as configured via this environment.
      * <p>
      * Every instance should be shut down properly by calling {@link #tearDown()}.
-     *
-     * @throws Exception
      */
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         mockPathManager();
-        host = createHost();
+        try {
+            host = createHost();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
         ScreenGrabber grabber = mock(ScreenGrabber.class);
         hostContext.put(ScreenGrabber.class, grabber);
         CoreRegistry.put(GameEngine.class, host);
