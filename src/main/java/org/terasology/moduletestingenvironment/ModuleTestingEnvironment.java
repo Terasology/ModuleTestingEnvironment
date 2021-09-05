@@ -151,7 +151,7 @@ public class ModuleTestingEnvironment {
     public static final long DEFAULT_SAFETY_TIMEOUT = 60000;
     public static final long DEFAULT_GAME_TIME_TIMEOUT = 30000;
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
-    private Set<String> dependencies = Sets.newHashSet("engine");
+    private final Set<String> dependencies = Sets.newHashSet("engine");
     private String worldGeneratorUri = "moduletestingenvironment:dummy";
     private boolean doneLoading;
     private TerasologyEngine host;
@@ -217,7 +217,10 @@ public class ModuleTestingEnvironment {
      */
     void setDependencies(Set<String> dependencies) {
         Preconditions.checkState(host == null, "You cannot set Dependencies after setup");
-        this.dependencies = dependencies;
+        synchronized (this.dependencies) {
+            this.dependencies.clear();
+            this.dependencies.addAll(dependencies);
+        }
     }
 
     /**
