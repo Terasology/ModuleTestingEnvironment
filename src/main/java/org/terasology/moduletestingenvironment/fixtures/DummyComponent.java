@@ -12,5 +12,6 @@ public class DummyComponent implements Component<DummyComponent> {
     @Override
     public void copyFrom(DummyComponent other) {
         eventReceived = other.eventReceived;
+        name = other.name;
     }
 }

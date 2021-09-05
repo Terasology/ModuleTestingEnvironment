@@ -49,7 +49,7 @@ public class MTEExtensionTestWithPerMethodLifecycle {
         // Create some entity to be shared by all the tests.
         EntityRef entity = entityManager.create(new DummyComponent());
 
-        // Do some stuff to configure it. !
+        // Do some stuff to configure it.
         entity.send(new DummyEvent());
 
         entity.updateComponent(DummyComponent.class, component -> {
@@ -61,7 +61,7 @@ public class MTEExtensionTestWithPerMethodLifecycle {
 
     @Test
     @Order(1)
-    public void firstTestCreatesThings() {
+    public void firstTestFindsThings() {
         List<EntityRef> entities = Lists.newArrayList(entityManager.getEntitiesWith(DummyComponent.class));
         // There should be one entity, created by the @BeforeAll method
         assertEquals(1, entities.size());
