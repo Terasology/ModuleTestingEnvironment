@@ -6,10 +6,12 @@ package org.terasology.moduletestingenvironment.fixtures;
 import org.terasology.gestalt.entitysystem.component.Component;
 
 public class DummyComponent implements Component<DummyComponent> {
-    public boolean dummy = false;
+    public boolean eventReceived = false;
+    public String name;
 
     @Override
     public void copyFrom(DummyComponent other) {
-        this.dummy = other.dummy;
+        eventReceived = other.eventReceived;
+        name = other.name;
     }
 }

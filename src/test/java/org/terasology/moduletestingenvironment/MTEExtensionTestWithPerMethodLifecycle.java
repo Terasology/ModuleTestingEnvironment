@@ -30,21 +30,22 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Ensure a test class with a per-class Jupiter lifecycle can share an engine between tests.
+ * Ensure a test class with a per-method Jupiter lifecycle can share an engine between tests.
  */
 @Tag("MteTest")
 @ExtendWith(MTEExtension.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)  // Lifecycle of the test instance
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)  // The default, but here for explicitness.
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class MTEExtensionTestWithPerClassLifecycle {
+public class MTEExtensionTestWithPerMethodLifecycle {
+    // java 8 doesn't have ConcurrentSet
+    @SuppressWarnings("checkstyle:constantname")
+    private static final ConcurrentMap<String, Integer> seenNames = new ConcurrentHashMap<>();
+
     @In
     public EntityManager entityManager;
 
-    // java 8 doesn't have ConcurrentSet
-    private final ConcurrentMap<String, Integer> seenNames = new ConcurrentHashMap<>();
-
     @BeforeAll
-    public void createEntity(TestInfo testInfo) {
+    public static void createEntity(EntityManager entityManager, TestInfo testInfo) {
         // Create some entity to be shared by all the tests.
         EntityRef entity = entityManager.create(new DummyComponent());
 

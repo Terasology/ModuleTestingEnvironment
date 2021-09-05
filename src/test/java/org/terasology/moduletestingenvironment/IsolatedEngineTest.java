@@ -47,7 +47,7 @@ public class IsolatedEngineTest {
         entityManagerSet.add(entityManager);
 
         entity.send(new DummyEvent());
-        assertTrue(entity.getComponent(DummyComponent.class).dummy);
+        assertTrue(entity.getComponent(DummyComponent.class).eventReceived);
     }
 
     @Test
@@ -56,7 +56,7 @@ public class IsolatedEngineTest {
         // make sure we don't reuse the EntityManager
         assertFalse(entityManagerSet.contains(entityManager));
 
-        assertFalse(entity.getComponent(DummyComponent.class).dummy,
+        assertFalse(entity.getComponent(DummyComponent.class).eventReceived,
                 "This entity should not have its field set yet!");
     }
 }
