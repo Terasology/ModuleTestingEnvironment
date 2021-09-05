@@ -55,8 +55,8 @@ public class IsolatedEngineTest {
     public void someOtherTest() {
         // make sure we don't reuse the EntityManager
         assertFalse(entityManagerSet.contains(entityManager));
-        entityManagerSet.add(entityManager);
 
-        assertFalse(entity.getComponent(DummyComponent.class).dummy);
+        assertFalse(entity.getComponent(DummyComponent.class).dummy,
+                "This entity should not have its field set yet!");
     }
 }

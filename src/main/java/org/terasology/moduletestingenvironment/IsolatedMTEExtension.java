@@ -3,8 +3,6 @@
 
 package org.terasology.moduletestingenvironment;
 
-import org.junit.jupiter.api.extension.ExtensionContext;
-
 /**
  * Subclass of {@link MTEExtension} which isolates all test cases by creating a new engine for each test. This is much
  * slower since it runs the startup and shutdown process for all tests. You should use {@link MTEExtension} unless
@@ -13,10 +11,9 @@ import org.junit.jupiter.api.extension.ExtensionContext;
  * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
 public class IsolatedMTEExtension extends MTEExtension {
-    @Override
-    protected ExtensionContext.Namespace getNamespace(ExtensionContext context) {
+    {
         // Resources are not shared between namespaces. We increase isolation by using a different
         // namespace for every test method.
-        return ExtensionContext.Namespace.create(MTEExtension.class, context.getTestMethod());
+        helperLifecycle = Scopes.PER_METHOD;
     }
 }

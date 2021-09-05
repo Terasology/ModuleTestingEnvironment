@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Junit 5 Extension for using {@link ModuleTestingHelper} in your test.
@@ -47,6 +48,7 @@ import java.util.List;
 public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestInstancePostProcessor {
 
     static final String LOGBACK_RESOURCE = "default-logback.xml";
+    protected Function<ExtensionContext, ExtensionContext.Namespace> helperLifecycle = Scopes.PER_CLASS;
 
     @Override
     public void beforeAll(ExtensionContext context) {
@@ -115,7 +117,7 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
      * @return new instance
      */
     private static ModuleTestingHelper setupHelper(ExtensionContext context) {
-        Class<?> testClass = getTopTestClass(context);
+        Class<?> testClass = Scopes.getTopTestClass(context);
         Dependencies dependencies = testClass.getAnnotation(Dependencies.class);
         UseWorldGenerator useWorldGenerator = testClass.getAnnotation(UseWorldGenerator.class);
         ModuleTestingHelper helperContext = new ModuleTestingHelper();
@@ -146,35 +148,11 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
      * @return configured for this test
      */
     private ModuleTestingHelper getHelper(ExtensionContext context) {
-        ExtensionContext.Store store = context.getStore(getNamespace(context));
+        ExtensionContext.Store store = context.getStore(helperLifecycle.apply(context));
         HelperCleaner autoCleaner = store.getOrComputeIfAbsent(
                 HelperCleaner.class, k -> new HelperCleaner(setupHelper(context)),
                 HelperCleaner.class);
         return autoCleaner.helper;
-    }
-
-    /** The Namespace to store the ModuleTestingHelper state in. */
-    protected ExtensionContext.Namespace getNamespace(ExtensionContext context) {
-        return ExtensionContext.Namespace.create(
-                MTEExtension.class,  // Start with this Extension, so it's clear where this came from.
-                getTopTestClass(context)  // one namespace per test class
-        );
-    }
-
-    /**
-     * The outermost class defining this test.
-     * <p>
-     * For <a href="https://junit.org/junit5/docs/current/user-guide/#writing-tests-nested">nested tests</a>, this
-     * returns the outermost class in which this test is nested.
-     * <p>
-     * Most tests are not nested, in which case this returns the class defining the test.
-     *
-     * @param context for the current test
-     * @return a test class
-     */
-    protected static Class<?> getTopTestClass(ExtensionContext context) {
-        Class<?> testClass = context.getRequiredTestClass();
-        return testClass.isAnnotationPresent(Nested.class) ? testClass.getEnclosingClass() : testClass;
     }
 
     /**
