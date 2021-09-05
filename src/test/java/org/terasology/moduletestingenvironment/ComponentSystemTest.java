@@ -8,10 +8,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.engine.entitySystem.entity.EntityManager;
 import org.terasology.engine.entitySystem.entity.EntityRef;
+import org.terasology.engine.registry.In;
 import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.moduletestingenvironment.fixtures.DummyComponent;
 import org.terasology.moduletestingenvironment.fixtures.DummyEvent;
-import org.terasology.engine.registry.In;
 
 @Tag("MteTest")
 @ExtendWith(MTEExtension.class)
@@ -24,6 +24,6 @@ public class ComponentSystemTest {
     public void simpleEventTest() {
         EntityRef entity = entityManager.create(new DummyComponent());
         entity.send(new DummyEvent());
-        Assertions.assertTrue(entity.getComponent(DummyComponent.class).dummy);
+        Assertions.assertTrue(entity.getComponent(DummyComponent.class).eventReceived);
     }
 }
