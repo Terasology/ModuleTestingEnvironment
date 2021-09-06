@@ -9,7 +9,6 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.util.StatusPrinter;
 import com.google.common.collect.Sets;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -25,10 +24,11 @@ import org.terasology.moduletestingenvironment.extension.UseWorldGenerator;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Junit 5 Extension for using {@link ModuleTestingHelper} in your test.
@@ -47,53 +47,23 @@ import java.util.Map;
  * <p>
  * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
-public class MTEExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver, TestInstancePostProcessor {
+public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestInstancePostProcessor {
 
     static final String LOGBACK_RESOURCE = "default-logback.xml";
-
-    protected final Map<Class<?>, ModuleTestingHelper> helperContexts = new HashMap<>();
-
-    @Override
-    public void afterAll(ExtensionContext context) throws Exception {
-        Class<?> testClass = context.getRequiredTestClass();
-        if (testClass.isAnnotationPresent(Nested.class)) {
-            // nested classes get torn down in the parent
-            return;
-        }
-
-        // Could be null if an exception interrupts before setup is complete.
-        if (helperContexts.get(testClass) != null) {
-            helperContexts.get(testClass).tearDown();
-        }
-    }
+    protected Function<ExtensionContext, ExtensionContext.Namespace> helperLifecycle = Scopes.PER_CLASS;
+    protected Function<ExtensionContext, Class<?>> getTestClass = Scopes::getTopTestClass;
 
     @Override
-    public void beforeAll(ExtensionContext context) throws Exception {
+    public void beforeAll(ExtensionContext context) {
         if (context.getRequiredTestClass().isAnnotationPresent(Nested.class)) {
-            // nested classes get set up in the parent
-            ModuleTestingHelper parentHelper = helperContexts.get(context.getRequiredTestClass().getEnclosingClass());
-            helperContexts.put(context.getRequiredTestClass(), parentHelper);
-            return;
+            return;  // nested classes get set up in the parent
         }
-
         setupLogging();
-
-        Dependencies dependencies = context.getRequiredTestClass().getAnnotation(Dependencies.class);
-        UseWorldGenerator useWorldGenerator = context.getRequiredTestClass().getAnnotation(UseWorldGenerator.class);
-        ModuleTestingHelper helperContext = new ModuleTestingHelper();
-        if (dependencies != null) {
-            helperContext.setDependencies(Sets.newHashSet(dependencies.value()));
-        }
-        if (useWorldGenerator != null) {
-            helperContext.setWorldGeneratorUri(useWorldGenerator.value());
-        }
-        helperContext.setup();
-        helperContexts.put(context.getRequiredTestClass(), helperContext);
     }
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
+        ModuleTestingHelper helper = getHelper(extensionContext);
         return helper.getHostContext().get(parameterContext.getParameter().getType()) != null
                 || parameterContext.getParameter().getType().equals(ModuleTestingEnvironment.class)
                 || parameterContext.getParameter().getType().equals(ModuleTestingHelper.class);
@@ -101,7 +71,7 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
 
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
+        ModuleTestingHelper helper = getHelper(extensionContext);
         Class<?> type = parameterContext.getParameter().getType();
 
         return getDIInstance(helper, type);
@@ -115,8 +85,8 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
     }
 
     @Override
-    public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) throws Exception {
-        ModuleTestingHelper helper = helperContexts.get(extensionContext.getRequiredTestClass());
+    public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) {
+        ModuleTestingHelper helper = getHelper(extensionContext);
         List<IllegalAccessException> exceptionList = new LinkedList<>();
         Class<?> type = testInstance.getClass();
         while (type != null) {
@@ -138,6 +108,37 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
         if (!exceptionList.isEmpty()) {
             throw new MultipleFailuresError("I cannot provide DI instances:", exceptionList);
         }
+    }
+
+    public String getWorldGeneratorUri(ExtensionContext context) {
+        UseWorldGenerator useWorldGenerator = getTestClass.apply(context).getAnnotation(UseWorldGenerator.class);
+        return useWorldGenerator != null ? useWorldGenerator.value() : null;
+    }
+
+    public Set<String> getDependencyNames(ExtensionContext context) {
+        Dependencies dependencies = getTestClass.apply(context).getAnnotation(Dependencies.class);
+        return dependencies != null ? Sets.newHashSet(dependencies.value()) : Collections.emptySet();
+    }
+
+    /**
+     * Get the ModuleTestingHelper for this test.
+     * <p>
+     * The new ModuleTestingHelper instance is configured using the {@link Dependencies} and {@link UseWorldGenerator}
+     * annotations for the test class.
+     * <p>
+     * This will create a new instance when necessary. It will be stored in the
+     * {@link ExtensionContext} for reuse between tests that wish to avoid the expense of creating a new
+     * instance every time, and will be disposed of when the context closes.
+     *
+     * @param context for the current test
+     * @return configured for this test
+     */
+    protected ModuleTestingHelper getHelper(ExtensionContext context) {
+        ExtensionContext.Store store = context.getStore(helperLifecycle.apply(context));
+        HelperCleaner autoCleaner = store.getOrComputeIfAbsent(
+                HelperCleaner.class, k -> new HelperCleaner(getDependencyNames(context), getWorldGeneratorUri(context)),
+                HelperCleaner.class);
+        return autoCleaner.helper;
     }
 
     /**
@@ -172,6 +173,43 @@ public class MTEExtension implements BeforeAllCallback, AfterAllCallback, Parame
             throw new RuntimeException("Error during logger configuration", e);
         } finally {
             StatusPrinter.printInCaseOfErrorsOrWarnings(context);
+        }
+    }
+
+    /**
+     * Manages a ModuleTestingHelper for storage in an ExtensionContext.
+     * <p>
+     * Implements {@link ExtensionContext.Store.CloseableResource CloseableResource} to dispose of
+     * the {@link ModuleTestingHelper} when the context is closed.
+     */
+    static class HelperCleaner implements ExtensionContext.Store.CloseableResource {
+        protected ModuleTestingHelper helper;
+
+        HelperCleaner(ModuleTestingHelper helper) {
+            this.helper = helper;
+        }
+
+        HelperCleaner(Set<String> dependencyNames, String worldGeneratorUri) {
+            this(setupHelper(new ModuleTestingHelper(), dependencyNames, worldGeneratorUri));
+        }
+
+        protected static ModuleTestingHelper setupHelper(ModuleTestingHelper helper, Set<String> dependencyNames,
+                                                         String worldGeneratorUri) {
+            // This is a shim to fit the existing ModuleTestingEnvironment interface, but
+            // I expect we can make things cleaner after we drop the old interface that is
+            // also pretending to be a TestCase class itself.
+            helper.setDependencies(dependencyNames);
+            if (worldGeneratorUri != null) {
+                helper.setWorldGeneratorUri(worldGeneratorUri);
+            }
+            helper.setup();
+            return helper;
+        }
+
+        @Override
+        public void close() {
+            helper.tearDown();
+            helper = null;
         }
     }
 }

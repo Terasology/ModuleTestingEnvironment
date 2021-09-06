@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag("MteTest")
 @ExtendWith(IsolatedMTEExtension.class)
-@Dependencies({"engine", "ModuleTestingEnvironment"})
+@Dependencies("ModuleTestingEnvironment")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class IsolatedEngineTest {
     private final Set<EntityManager> entityManagerSet = Sets.newHashSet();
@@ -55,8 +55,8 @@ public class IsolatedEngineTest {
     public void someOtherTest() {
         // make sure we don't reuse the EntityManager
         assertFalse(entityManagerSet.contains(entityManager));
-        entityManagerSet.add(entityManager);
 
-        assertFalse(entity.getComponent(DummyComponent.class).eventReceived);
+        assertFalse(entity.getComponent(DummyComponent.class).eventReceived,
+                "This entity should not have its field set yet!");
     }
 }
