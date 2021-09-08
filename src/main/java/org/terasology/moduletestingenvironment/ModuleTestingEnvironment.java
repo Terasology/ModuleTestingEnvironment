@@ -5,8 +5,13 @@ package org.terasology.moduletestingenvironment;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import org.joml.Matrix4f;
+import org.joml.RoundingMode;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.junit.jupiter.api.AfterEach;
@@ -40,15 +45,17 @@ import org.terasology.engine.core.subsystem.lwjgl.LwjglInput;
 import org.terasology.engine.core.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.core.subsystem.openvr.OpenVRInput;
 import org.terasology.engine.entitySystem.entity.EntityManager;
-import org.terasology.engine.logic.location.LocationComponent;
 import org.terasology.engine.network.JoinStatus;
 import org.terasology.engine.network.NetworkSystem;
 import org.terasology.engine.registry.CoreRegistry;
 import org.terasology.engine.rendering.opengl.ScreenGrabber;
 import org.terasology.engine.rendering.world.viewDistance.ViewDistance;
 import org.terasology.engine.testUtil.WithUnittestModule;
-import org.terasology.engine.world.RelevanceRegionComponent;
 import org.terasology.engine.world.WorldProvider;
+import org.terasology.engine.world.block.BlockRegion;
+import org.terasology.engine.world.block.BlockRegionc;
+import org.terasology.engine.world.chunks.Chunks;
+import org.terasology.engine.world.chunks.localChunkProvider.RelevanceSystem;
 import org.terasology.gestalt.module.Module;
 import org.terasology.gestalt.module.ModuleMetadataJsonAdapter;
 import org.terasology.gestalt.module.ModuleRegistry;
@@ -60,8 +67,13 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Verify.verifyNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -263,17 +275,64 @@ public class ModuleTestingEnvironment {
             return;
         }
 
-        // we need to add an entity with RegionRelevance in order to get a chunk generated
-        LocationComponent locationComponent = new LocationComponent();
-        locationComponent.setWorldPosition(new Vector3f(blockPos));
+        ListenableFuture<ChunkRegionFuture> chunkRegion = makeBlocksRelevant(new BlockRegion(blockPos));
+        runUntil(chunkRegion);
+    }
 
-        // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
-        RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
-        relevanceRegionComponent.distance = new Vector3i(2, 2, 2);
+    /**
+     *
+     * @param blocks blocks to mark as relevant
+     * @return relevant chunks
+     */
+    public ListenableFuture<ChunkRegionFuture> makeBlocksRelevant(BlockRegionc blocks) {
+        BlockRegion desiredChunkRegion = Chunks.toChunkRegion(new BlockRegion(blocks));
+        return makeChunksRelevant(desiredChunkRegion, blocks.center(new Vector3f()));
+    }
 
-        hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
+    @SuppressWarnings("unused")
+    public ListenableFuture<ChunkRegionFuture> makeChunksRelevant(BlockRegion chunks) {
+        // Pick a central point (in block coordinates).
+        Vector3f centerPoint = chunkRegionToNewBlockRegion(chunks).center(new Vector3f());
 
-        runWhile(() -> !worldProvider.isBlockRelevant(blockPos));
+        return makeChunksRelevant(chunks, centerPoint);
+    }
+
+    public ListenableFuture<ChunkRegionFuture> makeChunksRelevant(BlockRegion chunks, Vector3fc centerBlock) {
+        checkArgument(chunks.contains(Chunks.toChunkPos(new Vector3i(centerBlock, RoundingMode.FLOOR))),
+                "centerBlock should %s be within the region %s",
+                centerBlock, chunkRegionToNewBlockRegion(chunks));
+        Vector3i desiredSize = chunks.getSize(new Vector3i());
+
+        EntityManager entityManager = verifyNotNull(hostContext.get(EntityManager.class));
+        RelevanceSystem relevanceSystem = verifyNotNull(hostContext.get(RelevanceSystem.class));
+        ChunkRegionFuture listener = ChunkRegionFuture.create(entityManager, relevanceSystem, centerBlock, desiredSize);
+        return listener.getFuture();
+    }
+
+    private BlockRegionc chunkRegionToNewBlockRegion(BlockRegionc chunks) {
+        BlockRegion blocks = new BlockRegion(chunks);
+        return blocks.transform(new Matrix4f().scaling(new Vector3f(Chunks.CHUNK_SIZE)));
+    }
+
+    public <T> T runUntil(ListenableFuture<T> future) {
+        boolean timedOut = runUntil(future::isDone);
+        if (timedOut) {
+            // TODO: if runUntil returns timedOut but does not throw an exception, it
+            //     means it hit DEFAULT_GAME_TIME_TIMEOUT but not SAFETY_TIMEOUT, and
+            //     that's a weird interface due for a revision.
+            future.cancel(true);  // let it know we no longer expect results
+            throw new UncheckedTimeoutException("No result within default timeout.");
+        }
+        try {
+            return future.get(0, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            throw new UncheckedExecutionException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted while waiting for " + future, e);
+        } catch (TimeoutException e) {
+            throw new UncheckedTimeoutException(
+                    "Checked isDone before calling get, so this shouldn't happen.", e);
+        }
     }
 
     /**
