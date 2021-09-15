@@ -152,6 +152,10 @@ public class ModuleTestingEnvironment {
     public static final long DEFAULT_SAFETY_TIMEOUT = 60000;
     public static final long DEFAULT_GAME_TIME_TIMEOUT = 30000;
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
+
+    PathManager pathManager;
+    PathManagerProvider.Cleaner pathManagerCleaner;
+
     private final Set<String> dependencies = Sets.newHashSet("engine");
     private String worldGeneratorUri = "moduletestingenvironment:dummy";
     private boolean doneLoading;
@@ -159,9 +163,6 @@ public class ModuleTestingEnvironment {
     private Context hostContext;
     private final List<TerasologyEngine> engines = Lists.newArrayList();
     private long safetyTimeoutMs = DEFAULT_SAFETY_TIMEOUT;
-
-    PathManager pathManager;
-    PathManagerProvider.Cleaner pathManagerCleaner;
 
     /**
      * Set up and start the engine as configured via this environment.
@@ -434,9 +435,10 @@ public class ModuleTestingEnvironment {
         System.setProperty(ModuleManager.LOAD_CLASSPATH_MODULES_PROPERTY, "true");
 
         // create temporary home paths so the MTE engines don't overwrite config/save files in your real home path
+        // FIXME: Collisions when attempting to do multiple simultaneous createEngines.
+        //    (PathManager will need to be set in Context, not a process-wide global.)
         Path path = Files.createTempDirectory("terasology-mte-engine");
-        PathManager pathManager = PathManager.getInstance();
-        pathManager.useOverrideHomePath(path);
+        PathManager.getInstance().useOverrideHomePath(path);
         logger.info("Created temporary engine home path: {}", path);
 
         // JVM will delete these on normal termination but not exceptions.
