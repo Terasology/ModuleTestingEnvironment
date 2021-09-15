@@ -215,7 +215,7 @@ public class ModuleTestingEnvironment {
      * Setting dependencies for using by {@link ModuleTestingEnvironment}.
      *
      * @param dependencies the set of module names to load
-     * @throws IllegalStateException if you try'd setWorldGeneratorUrl after {@link
+     * @throws IllegalStateException if you tried setWorldGeneratorUrl after {@link
      *         ModuleTestingEnvironment#setup()}
      */
     void setDependencies(Set<String> dependencies) {
@@ -277,9 +277,10 @@ public class ModuleTestingEnvironment {
 
     /**
      * Runs tick() on the engine until f evaluates to true or DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed in game time
+     * @return true if execution timed out
      */
-    public void runUntil(Supplier<Boolean> f) {
-        runWhile(() -> !f.get());
+    public boolean runUntil(Supplier<Boolean> f) {
+        return runWhile(() -> !f.get());
     }
 
     /**
@@ -293,9 +294,10 @@ public class ModuleTestingEnvironment {
 
     /**
      * Runs tick() on the engine while f evaluates to true or until DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed
+     * @return true if execution timed out
      */
-    public void runWhile(Supplier<Boolean> f) {
-        runWhile(DEFAULT_GAME_TIME_TIMEOUT, f);
+    public boolean runWhile(Supplier<Boolean> f) {
+        return runWhile(DEFAULT_GAME_TIME_TIMEOUT, f);
     }
 
     /**
