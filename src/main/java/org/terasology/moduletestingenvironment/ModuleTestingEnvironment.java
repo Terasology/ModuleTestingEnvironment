@@ -80,8 +80,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Base class for tests involving full {@link TerasologyEngine} instances. View the tests included in this module for
- * simple usage examples
- * <p>
+ * simple usage examples.
+ *
  * <h2>Introduction</h2>
  * If test classes extend this class will create a new host engine for each {@code @Test} method. If the testing
  * environment is used by composition {@link #setup()} and {@link #tearDown()} need to be called explicitly. This can be
@@ -92,7 +92,7 @@ import static org.mockito.Mockito.when;
  * use CoreRegistry in your test code, as this is manipulated by the test environment to allow multiple instances of the
  * engine to peacefully coexist. You should always use the returned context reference to manipulate or inspect the
  * CoreRegistry of a given engine instance.
- * <p>
+ *
  * <h2>Client Engine Instances</h2>
  * Client instances can be easily created via {@link #createClient()} which returns the in-game context of the created
  * engine instance. When this method returns, the client will be in the {@link StateIngame} state and connected to the
@@ -101,7 +101,7 @@ import static org.mockito.Mockito.when;
  * Engines can be run while a condition is true via {@link #runWhile(Supplier)} <br>{@code runWhile(()-> true);}
  * <p>
  * or conversely run until a condition is true via {@link #runUntil(Supplier)} <br>{@code runUntil(()-> false);}
- * <p>
+ *
  * <h2>Specifying Dependencies</h2>
  * By default the environment will load only the engine itself. In order to load your own module code, you must override
  * {@link #getDependencies()} in your test subclass.
@@ -122,38 +122,37 @@ import static org.mockito.Mockito.when;
  * }
  * }
  * </pre>
- * <p>
+ *
  * <h2>Reuse the MTE for Multiple Tests</h2>
  * To use the same engine for multiple tests the testing environment can be set up explicitly and shared between tests.
  * To configure module dependencies or the world generator an anonymous class may be used.
  * <pre>
- * {@code
  * private static ModuleTestingEnvironment context;
  *
- * @BeforeAll
+ * &#64;BeforeAll
  * public static void setup() throws Exception {
  *     context = new ModuleTestingEnvironment() {
- *     @Override
- *     public Set<String> getDependencies() {
+ *     &#64;Override
+ *     public Set&lt;String&gt; getDependencies() {
  *         return Sets.newHashSet("ModuleTestingEnvironment");
  *     }
  *     };
  *     context.setup();
  * }
  *
- * @AfterAll
+ * &#64;AfterAll
  * public static void tearDown() throws Exception {
  *     context.tearDown();
  * }
  *
- * @Test
+ * &#64;Test
  * public void someTest() {
  *     Context hostContext = context.getHostContext();
  *     EntityManager entityManager = hostContext.get(EntityManager.class);
  *     // ...
  * }
- * }
  * </pre>
+ *
  * @deprecated Use the {@link MTEExtension} or {@link IsolatedMTEExtension} instead with JUnit5.
  */
 @Deprecated
@@ -450,16 +449,16 @@ public class ModuleTestingEnvironment {
     }
 
     /**
-     * Sets the safety timeout (default 30000ms). The safety timeout applies to `runWhile` and related helpers, and
-     * stops execution when the specified number of real time milliseconds has passsed. Note that this is different from
+     * Sets the safety timeout (default 30s).
+     *
+     * @param safetyTimeoutMs The safety timeout applies to {@link #runWhile runWhile} and related helpers, and
+     * stops execution when the specified number of real time milliseconds has passed. Note that this is different from
      * the timeout parameter of those methods, which is specified in game time.
-     *
-     * When a single run* helper invocation exceeds the safety timeout, MTE asserts false to explicitly fail the test.
-     *
+     * <p>
+     * When a single {@code run*} helper invocation exceeds the safety timeout, MTE asserts false to explicitly fail the test.
+     * <p>
      * The safety timeout exists to prevent indefinite execution in Jenkins or long IDE test runs, and should be
      * adjusted as needed so that tests pass reliably in all environments.
-     *
-     * @param safetyTimeoutMs
      */
     public void setSafetyTimeoutMs(long safetyTimeoutMs) {
         this.safetyTimeoutMs = safetyTimeoutMs;
@@ -515,10 +514,10 @@ public class ModuleTestingEnvironment {
      * In standalone module environments (i.e. Jenkins CI builds) the CWD is the module under test. When it uses MTE
      * it very likely needs to load itself as a module, but it won't be loadable from the typical path such as
      * ./modules. This means that modules using MTE would always fail CI tests due to failing to load themselves.
-     *
+     * <p>
      * For these cases we try to load the CWD (via the installPath) as a module and put it in the global module
      * registry.
-     *
+     * <p>
      * This process is based on how ModuleManagerImpl uses ModulePathScanner to scan for available modules.
      *
      * @param terasologyEngine
