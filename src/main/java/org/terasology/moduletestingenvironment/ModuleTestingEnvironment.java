@@ -5,11 +5,11 @@ package org.terasology.moduletestingenvironment;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.UncheckedTimeoutException;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -313,18 +313,28 @@ public class ModuleTestingEnvironment {
 
         while (f.get() && !timedOut) {
             Thread.yield();
+            if (Thread.currentThread().isInterrupted()) {
+                throw new RuntimeException(String.format("Thread %s interrupted while waiting for %s.",
+                        Thread.currentThread(), f));
+            }
             for (TerasologyEngine terasologyEngine : engines) {
-                terasologyEngine.tick();
+                boolean keepRunning = terasologyEngine.tick();
+                if (!keepRunning && terasologyEngine == host) {
+                    throw new RuntimeException("Host has shut down: " + host.getStatus());
+                }
             }
 
             // handle safety timeout
             if (System.currentTimeMillis() - startRealTime > safetyTimeoutMs) {
                 timedOut = true;
-                Assertions.assertTrue(false, "MTE Safety timeout exceeded. See setSafetyTimeoutMs()");
+                // If we've passed the _safety_ timeout, throw an exception.
+                throw new UncheckedTimeoutException("MTE Safety timeout exceeded. See setSafetyTimeoutMs()");
             }
 
             // handle game time timeout
             if (hostTime.getGameTimeInMs() - startGameTime > gameTimeTimeoutMs) {
+                // If we've passed the user-specified timeout but are still under the
+                // safety threshold, set timed-out status without throwing.
                 timedOut = true;
             }
         }
