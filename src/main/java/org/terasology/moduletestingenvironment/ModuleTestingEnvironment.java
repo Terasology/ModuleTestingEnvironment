@@ -5,11 +5,11 @@ package org.terasology.moduletestingenvironment;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.UncheckedTimeoutException;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,6 +152,10 @@ public class ModuleTestingEnvironment {
     public static final long DEFAULT_SAFETY_TIMEOUT = 60000;
     public static final long DEFAULT_GAME_TIME_TIMEOUT = 30000;
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
+
+    PathManager pathManager;
+    PathManagerProvider.Cleaner pathManagerCleaner;
+
     private final Set<String> dependencies = Sets.newHashSet("engine");
     private String worldGeneratorUri = "moduletestingenvironment:dummy";
     private boolean doneLoading;
@@ -159,9 +163,6 @@ public class ModuleTestingEnvironment {
     private Context hostContext;
     private final List<TerasologyEngine> engines = Lists.newArrayList();
     private long safetyTimeoutMs = DEFAULT_SAFETY_TIMEOUT;
-
-    PathManager pathManager;
-    PathManagerProvider.Cleaner pathManagerCleaner;
 
     /**
      * Set up and start the engine as configured via this environment.
@@ -215,7 +216,7 @@ public class ModuleTestingEnvironment {
      * Setting dependencies for using by {@link ModuleTestingEnvironment}.
      *
      * @param dependencies the set of module names to load
-     * @throws IllegalStateException if you try'd setWorldGeneratorUrl after {@link
+     * @throws IllegalStateException if you tried setWorldGeneratorUrl after {@link
      *         ModuleTestingEnvironment#setup()}
      */
     void setDependencies(Set<String> dependencies) {
@@ -277,9 +278,10 @@ public class ModuleTestingEnvironment {
 
     /**
      * Runs tick() on the engine until f evaluates to true or DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed in game time
+     * @return true if execution timed out
      */
-    public void runUntil(Supplier<Boolean> f) {
-        runWhile(() -> !f.get());
+    public boolean runUntil(Supplier<Boolean> f) {
+        return runWhile(() -> !f.get());
     }
 
     /**
@@ -293,9 +295,10 @@ public class ModuleTestingEnvironment {
 
     /**
      * Runs tick() on the engine while f evaluates to true or until DEFAULT_GAME_TIME_TIMEOUT milliseconds have passed
+     * @return true if execution timed out
      */
-    public void runWhile(Supplier<Boolean> f) {
-        runWhile(DEFAULT_GAME_TIME_TIMEOUT, f);
+    public boolean runWhile(Supplier<Boolean> f) {
+        return runWhile(DEFAULT_GAME_TIME_TIMEOUT, f);
     }
 
     /**
@@ -311,18 +314,28 @@ public class ModuleTestingEnvironment {
 
         while (f.get() && !timedOut) {
             Thread.yield();
+            if (Thread.currentThread().isInterrupted()) {
+                throw new RuntimeException(String.format("Thread %s interrupted while waiting for %s.",
+                        Thread.currentThread(), f));
+            }
             for (TerasologyEngine terasologyEngine : engines) {
-                terasologyEngine.tick();
+                boolean keepRunning = terasologyEngine.tick();
+                if (!keepRunning && terasologyEngine == host) {
+                    throw new RuntimeException("Host has shut down: " + host.getStatus());
+                }
             }
 
             // handle safety timeout
             if (System.currentTimeMillis() - startRealTime > safetyTimeoutMs) {
                 timedOut = true;
-                Assertions.assertTrue(false, "MTE Safety timeout exceeded. See setSafetyTimeoutMs()");
+                // If we've passed the _safety_ timeout, throw an exception.
+                throw new UncheckedTimeoutException("MTE Safety timeout exceeded. See setSafetyTimeoutMs()");
             }
 
             // handle game time timeout
             if (hostTime.getGameTimeInMs() - startGameTime > gameTimeTimeoutMs) {
+                // If we've passed the user-specified timeout but are still under the
+                // safety threshold, set timed-out status without throwing.
                 timedOut = true;
             }
         }
@@ -422,9 +435,10 @@ public class ModuleTestingEnvironment {
         System.setProperty(ModuleManager.LOAD_CLASSPATH_MODULES_PROPERTY, "true");
 
         // create temporary home paths so the MTE engines don't overwrite config/save files in your real home path
+        // FIXME: Collisions when attempting to do multiple simultaneous createEngines.
+        //    (PathManager will need to be set in Context, not a process-wide global.)
         Path path = Files.createTempDirectory("terasology-mte-engine");
-        PathManager pathManager = PathManager.getInstance();
-        pathManager.useOverrideHomePath(path);
+        PathManager.getInstance().useOverrideHomePath(path);
         logger.info("Created temporary engine home path: {}", path);
 
         // JVM will delete these on normal termination but not exceptions.
