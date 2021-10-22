@@ -162,7 +162,7 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
         context.reset();
         cfg.setContext(context);
-        try (InputStream i = getClass().getResourceAsStream(LOGBACK_RESOURCE)) {
+        try (InputStream i = ClassLoader.getSystemResource(LOGBACK_RESOURCE).openConnection().getInputStream()) {
             if (i == null) {
                 throw new RuntimeException("Failed to find " + LOGBACK_RESOURCE);
             }
