@@ -79,8 +79,8 @@ import java.util.function.Supplier;
  */
 public class ModuleTestingHelper implements ModuleTestingEnvironment {
 
-    protected final Engines engines;
-    protected final MainLoop mainLoop;
+    final Engines engines;
+    final MainLoop mainLoop;
 
     protected ModuleTestingHelper(Set<String> dependencies, String worldGeneratorUri) {
         engines = new Engines(dependencies, worldGeneratorUri);

@@ -33,10 +33,10 @@ class ChunkRegionFutureTest {
     WorldProvider world;
 
     @Test
-    void createChunkRegionFuture(EntityManager entityManager, RelevanceSystem relevanceSystem, ModuleTestingHelper mte) {
+    void createChunkRegionFuture(EntityManager entityManager, RelevanceSystem relevanceSystem, MainLoop mainLoop) {
         ChunkRegionFuture chunkRegionFuture = ChunkRegionFuture.create(entityManager, relevanceSystem, center, sizeInChunks);
 
-        mte.runUntil(chunkRegionFuture.getFuture());
+        mainLoop.runUntil(chunkRegionFuture.getFuture());
 
         Vector3fc someplaceInside = center.add(
                  sizeInChunks.x() * Chunks.SIZE_X / 3f, 0, 0,

@@ -63,9 +63,12 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
+        Class<?> type = parameterContext.getParameter().getType();
         ModuleTestingHelper helper = getHelper(extensionContext);
-        return helper.getHostContext().get(parameterContext.getParameter().getType()) != null
-                || parameterContext.getParameter().getType().equals(ModuleTestingHelper.class);
+        return helper.getHostContext().get(type) != null
+                || type.isAssignableFrom(Engines.class)
+                || type.isAssignableFrom(MainLoop.class)
+                || type.isAssignableFrom(ModuleTestingHelper.class);
     }
 
     @Override
@@ -77,10 +80,15 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
     }
 
     private Object getDIInstance(ModuleTestingHelper helper, Class<?> type) {
-        if (type.equals(ModuleTestingHelper.class)) {
+        if (type.isAssignableFrom(Engines.class)) {
+            return helper.engines;
+        } else if (type.isAssignableFrom(MainLoop.class)) {
+            return helper.mainLoop;
+        } else if (type.isAssignableFrom(ModuleTestingHelper.class)) {
             return helper;
+        } else {
+            return helper.getHostContext().get(type);
         }
-        return helper.getHostContext().get(type);
     }
 
     @Override

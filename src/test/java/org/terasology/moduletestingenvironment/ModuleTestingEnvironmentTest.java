@@ -21,19 +21,19 @@ public class ModuleTestingEnvironmentTest {
     public static final int THE_ANSWER = 42;
 
     @Test
-    public void runUntilWithUnsatisfiedFutureExplainsTimeout(ModuleTestingHelper mte) {
+    public void runUntilWithUnsatisfiedFutureExplainsTimeout(MainLoop mainLoop) {
         SettableFuture<?> unsatisfiedFuture = SettableFuture.create();
 
         UncheckedTimeoutException exception = assertThrows(UncheckedTimeoutException.class,
                 // TODO: change the timeout for this test so it doesn't always take
                 //     a minimum of 30 seconds.
-                () -> mte.runUntil(unsatisfiedFuture));
+                () -> mainLoop.runUntil(unsatisfiedFuture));
         assertThat(exception).hasMessageThat().contains("default timeout");
     }
 
     @Test
-    public void runUntilWithImmediateFutureReturnsValue(ModuleTestingHelper mte) {
+    public void runUntilWithImmediateFutureReturnsValue(MainLoop mainLoop) {
         ListenableFuture<Integer> valueFuture = Futures.immediateFuture(THE_ANSWER);
-        assertThat(mte.runUntil(valueFuture)).isEqualTo(THE_ANSWER);
+        assertThat(mainLoop.runUntil(valueFuture)).isEqualTo(THE_ANSWER);
     }
 }
