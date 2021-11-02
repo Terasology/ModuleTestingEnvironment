@@ -5,8 +5,13 @@ package org.terasology.moduletestingenvironment;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import org.joml.Matrix4f;
+import org.joml.RoundingMode;
 import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.junit.jupiter.api.AfterEach;
@@ -40,15 +45,17 @@ import org.terasology.engine.core.subsystem.lwjgl.LwjglInput;
 import org.terasology.engine.core.subsystem.lwjgl.LwjglTimer;
 import org.terasology.engine.core.subsystem.openvr.OpenVRInput;
 import org.terasology.engine.entitySystem.entity.EntityManager;
-import org.terasology.engine.logic.location.LocationComponent;
 import org.terasology.engine.network.JoinStatus;
 import org.terasology.engine.network.NetworkSystem;
 import org.terasology.engine.registry.CoreRegistry;
 import org.terasology.engine.rendering.opengl.ScreenGrabber;
 import org.terasology.engine.rendering.world.viewDistance.ViewDistance;
 import org.terasology.engine.testUtil.WithUnittestModule;
-import org.terasology.engine.world.RelevanceRegionComponent;
 import org.terasology.engine.world.WorldProvider;
+import org.terasology.engine.world.block.BlockRegion;
+import org.terasology.engine.world.block.BlockRegionc;
+import org.terasology.engine.world.chunks.Chunks;
+import org.terasology.engine.world.chunks.localChunkProvider.RelevanceSystem;
 import org.terasology.gestalt.module.Module;
 import org.terasology.gestalt.module.ModuleMetadataJsonAdapter;
 import org.terasology.gestalt.module.ModuleRegistry;
@@ -60,16 +67,21 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Verify.verifyNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 /**
  * Base class for tests involving full {@link TerasologyEngine} instances. View the tests included in this module for
- * simple usage examples
- * <p>
+ * simple usage examples.
+ *
  * <h2>Introduction</h2>
  * If test classes extend this class will create a new host engine for each {@code @Test} method. If the testing
  * environment is used by composition {@link #setup()} and {@link #tearDown()} need to be called explicitly. This can be
@@ -80,7 +92,7 @@ import static org.mockito.Mockito.when;
  * use CoreRegistry in your test code, as this is manipulated by the test environment to allow multiple instances of the
  * engine to peacefully coexist. You should always use the returned context reference to manipulate or inspect the
  * CoreRegistry of a given engine instance.
- * <p>
+ *
  * <h2>Client Engine Instances</h2>
  * Client instances can be easily created via {@link #createClient()} which returns the in-game context of the created
  * engine instance. When this method returns, the client will be in the {@link StateIngame} state and connected to the
@@ -89,7 +101,7 @@ import static org.mockito.Mockito.when;
  * Engines can be run while a condition is true via {@link #runWhile(Supplier)} <br>{@code runWhile(()-> true);}
  * <p>
  * or conversely run until a condition is true via {@link #runUntil(Supplier)} <br>{@code runUntil(()-> false);}
- * <p>
+ *
  * <h2>Specifying Dependencies</h2>
  * By default the environment will load only the engine itself. In order to load your own module code, you must override
  * {@link #getDependencies()} in your test subclass.
@@ -110,38 +122,37 @@ import static org.mockito.Mockito.when;
  * }
  * }
  * </pre>
- * <p>
+ *
  * <h2>Reuse the MTE for Multiple Tests</h2>
  * To use the same engine for multiple tests the testing environment can be set up explicitly and shared between tests.
  * To configure module dependencies or the world generator an anonymous class may be used.
  * <pre>
- * {@code
  * private static ModuleTestingEnvironment context;
  *
- * @BeforeAll
+ * &#64;BeforeAll
  * public static void setup() throws Exception {
  *     context = new ModuleTestingEnvironment() {
- *     @Override
- *     public Set<String> getDependencies() {
+ *     &#64;Override
+ *     public Set&lt;String&gt; getDependencies() {
  *         return Sets.newHashSet("ModuleTestingEnvironment");
  *     }
  *     };
  *     context.setup();
  * }
  *
- * @AfterAll
+ * &#64;AfterAll
  * public static void tearDown() throws Exception {
  *     context.tearDown();
  * }
  *
- * @Test
+ * &#64;Test
  * public void someTest() {
  *     Context hostContext = context.getHostContext();
  *     EntityManager entityManager = hostContext.get(EntityManager.class);
  *     // ...
  * }
- * }
  * </pre>
+ *
  * @deprecated Use the {@link MTEExtension} or {@link IsolatedMTEExtension} instead with JUnit5.
  */
 @Deprecated
@@ -263,17 +274,64 @@ public class ModuleTestingEnvironment {
             return;
         }
 
-        // we need to add an entity with RegionRelevance in order to get a chunk generated
-        LocationComponent locationComponent = new LocationComponent();
-        locationComponent.setWorldPosition(new Vector3f(blockPos));
+        ListenableFuture<ChunkRegionFuture> chunkRegion = makeBlocksRelevant(new BlockRegion(blockPos));
+        runUntil(chunkRegion);
+    }
 
-        // relevance distance has to be at least 2 to get adjacent chunks in the cache, or else our main chunk will never be accessible
-        RelevanceRegionComponent relevanceRegionComponent = new RelevanceRegionComponent();
-        relevanceRegionComponent.distance = new Vector3i(2, 2, 2);
+    /**
+     *
+     * @param blocks blocks to mark as relevant
+     * @return relevant chunks
+     */
+    public ListenableFuture<ChunkRegionFuture> makeBlocksRelevant(BlockRegionc blocks) {
+        BlockRegion desiredChunkRegion = Chunks.toChunkRegion(new BlockRegion(blocks));
+        return makeChunksRelevant(desiredChunkRegion, blocks.center(new Vector3f()));
+    }
 
-        hostContext.get(EntityManager.class).create(locationComponent, relevanceRegionComponent).setAlwaysRelevant(true);
+    @SuppressWarnings("unused")
+    public ListenableFuture<ChunkRegionFuture> makeChunksRelevant(BlockRegion chunks) {
+        // Pick a central point (in block coordinates).
+        Vector3f centerPoint = chunkRegionToNewBlockRegion(chunks).center(new Vector3f());
 
-        runWhile(() -> !worldProvider.isBlockRelevant(blockPos));
+        return makeChunksRelevant(chunks, centerPoint);
+    }
+
+    public ListenableFuture<ChunkRegionFuture> makeChunksRelevant(BlockRegion chunks, Vector3fc centerBlock) {
+        checkArgument(chunks.contains(Chunks.toChunkPos(new Vector3i(centerBlock, RoundingMode.FLOOR))),
+                "centerBlock should %s be within the region %s",
+                centerBlock, chunkRegionToNewBlockRegion(chunks));
+        Vector3i desiredSize = chunks.getSize(new Vector3i());
+
+        EntityManager entityManager = verifyNotNull(hostContext.get(EntityManager.class));
+        RelevanceSystem relevanceSystem = verifyNotNull(hostContext.get(RelevanceSystem.class));
+        ChunkRegionFuture listener = ChunkRegionFuture.create(entityManager, relevanceSystem, centerBlock, desiredSize);
+        return listener.getFuture();
+    }
+
+    private BlockRegionc chunkRegionToNewBlockRegion(BlockRegionc chunks) {
+        BlockRegion blocks = new BlockRegion(chunks);
+        return blocks.transform(new Matrix4f().scaling(new Vector3f(Chunks.CHUNK_SIZE)));
+    }
+
+    public <T> T runUntil(ListenableFuture<T> future) {
+        boolean timedOut = runUntil(future::isDone);
+        if (timedOut) {
+            // TODO: if runUntil returns timedOut but does not throw an exception, it
+            //     means it hit DEFAULT_GAME_TIME_TIMEOUT but not SAFETY_TIMEOUT, and
+            //     that's a weird interface due for a revision.
+            future.cancel(true);  // let it know we no longer expect results
+            throw new UncheckedTimeoutException("No result within default timeout.");
+        }
+        try {
+            return future.get(0, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            throw new UncheckedExecutionException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted while waiting for " + future, e);
+        } catch (TimeoutException e) {
+            throw new UncheckedTimeoutException(
+                    "Checked isDone before calling get, so this shouldn't happen.", e);
+        }
     }
 
     /**
@@ -391,16 +449,16 @@ public class ModuleTestingEnvironment {
     }
 
     /**
-     * Sets the safety timeout (default 30000ms). The safety timeout applies to `runWhile` and related helpers, and
-     * stops execution when the specified number of real time milliseconds has passsed. Note that this is different from
+     * Sets the safety timeout (default 30s).
+     *
+     * @param safetyTimeoutMs The safety timeout applies to {@link #runWhile runWhile} and related helpers, and
+     * stops execution when the specified number of real time milliseconds has passed. Note that this is different from
      * the timeout parameter of those methods, which is specified in game time.
-     *
-     * When a single run* helper invocation exceeds the safety timeout, MTE asserts false to explicitly fail the test.
-     *
+     * <p>
+     * When a single {@code run*} helper invocation exceeds the safety timeout, MTE asserts false to explicitly fail the test.
+     * <p>
      * The safety timeout exists to prevent indefinite execution in Jenkins or long IDE test runs, and should be
      * adjusted as needed so that tests pass reliably in all environments.
-     *
-     * @param safetyTimeoutMs
      */
     public void setSafetyTimeoutMs(long safetyTimeoutMs) {
         this.safetyTimeoutMs = safetyTimeoutMs;
@@ -456,10 +514,10 @@ public class ModuleTestingEnvironment {
      * In standalone module environments (i.e. Jenkins CI builds) the CWD is the module under test. When it uses MTE
      * it very likely needs to load itself as a module, but it won't be loadable from the typical path such as
      * ./modules. This means that modules using MTE would always fail CI tests due to failing to load themselves.
-     *
+     * <p>
      * For these cases we try to load the CWD (via the installPath) as a module and put it in the global module
      * registry.
-     *
+     * <p>
      * This process is based on how ModuleManagerImpl uses ModulePathScanner to scan for available modules.
      *
      * @param terasologyEngine
