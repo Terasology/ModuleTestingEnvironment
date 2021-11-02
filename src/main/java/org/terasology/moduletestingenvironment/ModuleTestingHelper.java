@@ -13,7 +13,6 @@ import org.terasology.engine.world.block.BlockRegionc;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -82,27 +81,9 @@ public class ModuleTestingHelper implements ModuleTestingEnvironment {
     final Engines engines;
     final MainLoop mainLoop;
 
-    protected ModuleTestingHelper(Set<String> dependencies, String worldGeneratorUri) {
-        engines = new Engines(dependencies, worldGeneratorUri);
-        mainLoop = new MainLoop(engines);
-    }
-
-    /**
-     * Set up and start the engine as configured via this environment.
-     * <p>
-     * Every instance should be shut down properly by calling {@link #tearDown()}.
-     */
-    protected void setup() {
-        engines.setup();
-    }
-
-    /**
-     * Shut down a previously started testing environment.
-     * <p>
-     * Used to properly shut down and clean up a testing environment set up and started with {@link #setup()}.
-     */
-    protected void tearDown() {
-        engines.tearDown();
+    ModuleTestingHelper(Engines engines) {
+        this.engines = engines;
+        this.mainLoop = new MainLoop(engines);
     }
 
     @Override

@@ -64,8 +64,8 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
         Class<?> type = parameterContext.getParameter().getType();
-        ModuleTestingHelper helper = getHelper(extensionContext);
-        return helper.getHostContext().get(type) != null
+        Engines engines = getEngines(extensionContext);
+        return engines.getHostContext().get(type) != null
                 || type.isAssignableFrom(Engines.class)
                 || type.isAssignableFrom(MainLoop.class)
                 || type.isAssignableFrom(ModuleTestingHelper.class);
@@ -73,27 +73,27 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
 
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        ModuleTestingHelper helper = getHelper(extensionContext);
+        Engines engines = getEngines(extensionContext);
         Class<?> type = parameterContext.getParameter().getType();
 
-        return getDIInstance(helper, type);
+        return getDIInstance(engines, type);
     }
 
-    private Object getDIInstance(ModuleTestingHelper helper, Class<?> type) {
+    private Object getDIInstance(Engines engines, Class<?> type) {
         if (type.isAssignableFrom(Engines.class)) {
-            return helper.engines;
+            return engines;
         } else if (type.isAssignableFrom(MainLoop.class)) {
-            return helper.mainLoop;
+            return new MainLoop(engines);
         } else if (type.isAssignableFrom(ModuleTestingHelper.class)) {
-            return helper;
+            return new ModuleTestingHelper(engines);
         } else {
-            return helper.getHostContext().get(type);
+            return engines.getHostContext().get(type);
         }
     }
 
     @Override
     public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) {
-        ModuleTestingHelper helper = getHelper(extensionContext);
+        Engines engines = getEngines(extensionContext);
         List<IllegalAccessException> exceptionList = new LinkedList<>();
         Class<?> type = testInstance.getClass();
         while (type != null) {
@@ -101,7 +101,7 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
                     .filter((field) -> field.getAnnotation(In.class) != null)
                     .peek((field) -> field.setAccessible(true))
                     .forEach((field) -> {
-                        Object candidateObject = getDIInstance(helper, field.getType());
+                        Object candidateObject = getDIInstance(engines, field.getType());
                         try {
                             field.set(testInstance, candidateObject);
                         } catch (IllegalAccessException e) {
@@ -128,9 +128,9 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
     }
 
     /**
-     * Get the ModuleTestingHelper for this test.
+     * Get the Engines for this test.
      * <p>
-     * The new ModuleTestingHelper instance is configured using the {@link Dependencies} and {@link UseWorldGenerator}
+     * The new Engines instance is configured using the {@link Dependencies} and {@link UseWorldGenerator}
      * annotations for the test class.
      * <p>
      * This will create a new instance when necessary. It will be stored in the
@@ -140,12 +140,12 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
      * @param context for the current test
      * @return configured for this test
      */
-    protected ModuleTestingHelper getHelper(ExtensionContext context) {
+    protected Engines getEngines(ExtensionContext context) {
         ExtensionContext.Store store = context.getStore(helperLifecycle.apply(context));
-        HelperCleaner autoCleaner = store.getOrComputeIfAbsent(
-                HelperCleaner.class, k -> new HelperCleaner(getDependencyNames(context), getWorldGeneratorUri(context)),
-                HelperCleaner.class);
-        return autoCleaner.helper;
+        EnginesCleaner autoCleaner = store.getOrComputeIfAbsent(
+                EnginesCleaner.class, k -> new EnginesCleaner(getDependencyNames(context), getWorldGeneratorUri(context)),
+                EnginesCleaner.class);
+        return autoCleaner.engines;
     }
 
     /**
@@ -184,23 +184,23 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
     }
 
     /**
-     * Manages a ModuleTestingHelper for storage in an ExtensionContext.
+     * Manages Engines for storage in an ExtensionContext.
      * <p>
      * Implements {@link ExtensionContext.Store.CloseableResource CloseableResource} to dispose of
-     * the {@link ModuleTestingHelper} when the context is closed.
+     * the {@link Engines} when the context is closed.
      */
-    static class HelperCleaner implements ExtensionContext.Store.CloseableResource {
-        protected ModuleTestingHelper helper;
+    static class EnginesCleaner implements ExtensionContext.Store.CloseableResource {
+        protected Engines engines;
 
-        HelperCleaner(Set<String> dependencyNames, String worldGeneratorUri) {
-            helper = new ModuleTestingHelper(dependencyNames, worldGeneratorUri);
-            helper.setup();
+        EnginesCleaner(Set<String> dependencyNames, String worldGeneratorUri) {
+            engines = new Engines(dependencyNames, worldGeneratorUri);
+            engines.setup();
         }
 
         @Override
         public void close() {
-            helper.tearDown();
-            helper = null;
+            engines.tearDown();
+            engines = null;
         }
     }
 }

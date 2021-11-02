@@ -90,7 +90,7 @@ public interface ModuleTestingEnvironment {
     /**
      * Get the host context for this module testing environment.
      * <p>
-     * The host context will be null if the testing environment has not been set up via {@link ModuleTestingHelper#setup()}
+     * The host context will be null if the testing environment has not been set up via {@link Engines#setup()}
      * beforehand.
      *
      * @return the engine's host context, or null if not set up yet
