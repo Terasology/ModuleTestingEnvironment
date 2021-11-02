@@ -185,25 +185,9 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
     static class HelperCleaner implements ExtensionContext.Store.CloseableResource {
         protected ModuleTestingHelper helper;
 
-        HelperCleaner(ModuleTestingHelper helper) {
-            this.helper = helper;
-        }
-
         HelperCleaner(Set<String> dependencyNames, String worldGeneratorUri) {
-            this(setupHelper(new ModuleTestingHelper(), dependencyNames, worldGeneratorUri));
-        }
-
-        protected static ModuleTestingHelper setupHelper(ModuleTestingHelper helper, Set<String> dependencyNames,
-                                                         String worldGeneratorUri) {
-            // This is a shim to fit the existing ModuleTestingEnvironment interface, but
-            // I expect we can make things cleaner after we drop the old interface that is
-            // also pretending to be a TestCase class itself.
-            helper.setDependencies(dependencyNames);
-            if (worldGeneratorUri != null) {
-                helper.setWorldGeneratorUri(worldGeneratorUri);
-            }
+            helper = new ModuleTestingHelper(dependencyNames, worldGeneratorUri);
             helper.setup();
-            return helper;
         }
 
         @Override

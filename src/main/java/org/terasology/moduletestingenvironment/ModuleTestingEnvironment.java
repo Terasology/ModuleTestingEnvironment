@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -14,8 +13,6 @@ import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.engine.config.Config;
@@ -103,25 +100,11 @@ import static org.mockito.Mockito.when;
  * or conversely run until a condition is true via {@link #runUntil(Supplier)} <br>{@code runUntil(()-> false);}
  *
  * <h2>Specifying Dependencies</h2>
- * By default the environment will load only the engine itself. In order to load your own module code, you must override
- * {@link #getDependencies()} in your test subclass.
- * <pre>
- * {@literal
- * public Set<String> getDependencies() {
- *     return Sets.newHashSet("engine", "ModuleTestingEnvironment");
- * }
- * }
- * </pre>
+ * By default the environment will load only the engine itself. FIXME
+ *
  * <h2>Specifying World Generator</h2>
  * By default the environment will use a dummy world generator which creates nothing but air. To specify a more useful
- * world generator you must override {@link #getWorldGeneratorUri()} in your test subclass.
- * <pre>
- * {@literal
- * public String getWorldGeneratorUri() {
- *     return "moduletestingenvironment:dummy";
- * }
- * }
- * </pre>
+ * world generator you must FIXME
  *
  * <h2>Reuse the MTE for Multiple Tests</h2>
  * To use the same engine for multiple tests the testing environment can be set up explicitly and shared between tests.
@@ -162,26 +145,36 @@ public class ModuleTestingEnvironment {
 
     public static final long DEFAULT_SAFETY_TIMEOUT = 60000;
     public static final long DEFAULT_GAME_TIME_TIMEOUT = 30000;
+    public static final String DEFAULT_WORLD_GENERATOR = "moduletestingenvironment:dummy";
+
     private static final Logger logger = LoggerFactory.getLogger(ModuleTestingEnvironment.class);
+
+    protected final Set<String> dependencies = Sets.newHashSet("engine");
+    protected String worldGeneratorUri = DEFAULT_WORLD_GENERATOR;
 
     PathManager pathManager;
     PathManagerProvider.Cleaner pathManagerCleaner;
 
-    private final Set<String> dependencies = Sets.newHashSet("engine");
-    private String worldGeneratorUri = "moduletestingenvironment:dummy";
     private boolean doneLoading;
     private TerasologyEngine host;
     private Context hostContext;
     private final List<TerasologyEngine> engines = Lists.newArrayList();
     private long safetyTimeoutMs = DEFAULT_SAFETY_TIMEOUT;
 
+    protected ModuleTestingEnvironment(Set<String> dependencies, String worldGeneratorUri) {
+        this.dependencies.addAll(dependencies);
+
+        if (worldGeneratorUri != null) {
+            this.worldGeneratorUri = worldGeneratorUri;
+        }
+    }
+
     /**
      * Set up and start the engine as configured via this environment.
      * <p>
      * Every instance should be shut down properly by calling {@link #tearDown()}.
      */
-    @BeforeEach
-    public void setup() {
+    protected void setup() {
         mockPathManager();
         try {
             host = createHost();
@@ -198,8 +191,7 @@ public class ModuleTestingEnvironment {
      * <p>
      * Used to properly shut down and clean up a testing environment set up and started with {@link #setup()}.
      */
-    @AfterEach
-    public void tearDown() {
+    protected void tearDown() {
         engines.forEach(TerasologyEngine::shutdown);
         engines.forEach(TerasologyEngine::cleanup);
         engines.clear();
@@ -213,53 +205,6 @@ public class ModuleTestingEnvironment {
         host = null;
         hostContext = null;
     }
-
-    /**
-     * Override this to change which modules must be loaded for the environment
-     *
-     * @return The set of module names to load
-     */
-    public Set<String> getDependencies() {
-        return dependencies;
-    }
-
-    /**
-     * Setting dependencies for using by {@link ModuleTestingEnvironment}.
-     *
-     * @param dependencies the set of module names to load
-     * @throws IllegalStateException if you tried setWorldGeneratorUrl after {@link
-     *         ModuleTestingEnvironment#setup()}
-     */
-    void setDependencies(Set<String> dependencies) {
-        Preconditions.checkState(host == null, "You cannot set Dependencies after setup");
-        synchronized (this.dependencies) {
-            this.dependencies.clear();
-            this.dependencies.addAll(dependencies);
-        }
-    }
-
-    /**
-     * Override this to change which world generator to use. Defaults to a dummy generator that leaves all blocks as
-     * air
-     *
-     * @return the uri of the desired world generator
-     */
-    public String getWorldGeneratorUri() {
-        return worldGeneratorUri;
-    }
-
-    /**
-     * Setting world generator for using by {@link ModuleTestingEnvironment}.
-     *
-     * @param worldGeneratorUri the uri of desired world generator
-     * @throws IllegalStateException if you try'd setWorldGeneratorUrl after {@link
-     *         ModuleTestingEnvironment#setup()}
-     */
-    void setWorldGeneratorUri(String worldGeneratorUri) {
-        Preconditions.checkState(host == null, "You cannot set Dependencies after setup");
-        this.worldGeneratorUri = worldGeneratorUri;
-    }
-
 
     /**
      * Creates a dummy entity with RelevanceRegion component to force a chunk's generation and availability. Blocks
@@ -556,7 +501,7 @@ public class ModuleTestingEnvironment {
         TerasologyEngine terasologyEngine = createHeadlessEngine();
         terasologyEngine.getFromEngineContext(SystemConfig.class).writeSaveGamesEnabled.set(false);
         terasologyEngine.subscribeToStateChange(new HeadlessStateChangeListener(terasologyEngine));
-        terasologyEngine.changeState(new TestingStateHeadlessSetup(getDependencies(), getWorldGeneratorUri()));
+        terasologyEngine.changeState(new TestingStateHeadlessSetup(dependencies, worldGeneratorUri));
 
         doneLoading = false;
         terasologyEngine.subscribeToStateChange(() -> {

@@ -1,7 +1,9 @@
-// Copyright 2020 The Terasology Foundation
+// Copyright 2021 The Terasology Foundation
 // SPDX-License-Identifier: Apache-2.0
 
 package org.terasology.moduletestingenvironment;
+
+import java.util.Set;
 
 /**
  * Helpers for use in module tests.
@@ -12,4 +14,7 @@ package org.terasology.moduletestingenvironment;
  * In the next major release the base class will be removed and all methods will live in this class directly.
  */
 public class ModuleTestingHelper extends ModuleTestingEnvironment {
+    public ModuleTestingHelper(Set<String> dependencies, String worldGeneratorUri) {
+        super(dependencies, worldGeneratorUri);
+    }
 }
