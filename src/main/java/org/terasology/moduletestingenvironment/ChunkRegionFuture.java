@@ -26,6 +26,12 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Completes when all the chunks in a region are loaded.
+ *
+ * @see MainLoop#makeBlocksRelevant
+ * @see MainLoop#makeChunksRelevant
+ */
 @SuppressWarnings("checkstyle:finalclass")
 public class ChunkRegionFuture {
     public static final int REQUIRED_CHUNK_MARGIN = 1;
@@ -44,6 +50,10 @@ public class ChunkRegionFuture {
     }
 
     /**
+     * Load an area of the world.
+     * <p>
+     * The area is defined as a {@index "relevance region"} and will not be unloaded as long as {@link #entity} exists
+     * and has a {@link LocationComponent}.
      *
      * @param entityManager used to create the entity that depends on this region
      * @param relevanceSystem the authority on what is relevant

@@ -31,21 +31,60 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * Junit 5 Extension for using {@link ModuleTestingHelper} in your test.
+ * Sets up a Terasology environment for use with your {@index JUnit} 5 test.
  * <p>
- * Supports Terasology's DI as in usual Systems. You can inject Managers via {@link In} annotation, constructor's or
- * test's parameters. Also you can inject {@link ModuleTestingHelper} itself.
+ * Supports Terasology's DI as in usual Systems. You can inject Managers via {@link In} annotation, constructors or
+ * test parameters. Also you can inject {@link MainLoop} or {@link Engines} to interact with the environment's engine.
  * <p>
- * Every class annotated with this will create a single {@link ModuleTestingHelper} and use it during execution of
+ * Example:
+ * <pre><code>
+ * import org.junit.jupiter.api.extension.ExtendWith;
+ * import org.junit.jupiter.api.Test;
+ * import org.terasology.engine.registry.In;
+ *
+ * &#64;{@link org.junit.jupiter.api.extension.ExtendWith}(MTEExtension.class)
+ * &#64;{@link Dependencies}("MyModule")
+ * &#64;{@link UseWorldGenerator}("Pathfinding:pathfinder")
+ * public class ExampleTest {
+ *
+ *     &#64;In
+ *     EntityManager entityManager;
+ *
+ *     &#64;In
+ *     {@link MainLoop} mainLoop;
+ *
+ *     &#64;Test
+ *     public void testSomething() {
+ *         // …
+ *     }
+ *
+ *     // Injection is also applied to the parameters of individual tests:
+ *     &#64;Test
+ *     public void testSomething({@link Engines} engines, WorldProvider worldProvider) {
+ *         // …
+ *     }
+ * }
+ * </code></pre>
+ * <p>
+ * You can configure the environment with these additional annotations:
+ * <dl>
+ *     <dt>{@link Dependencies @Dependencies}</dt>
+ *     <dd>Specify which modules to include in the environment. Put the name of your module under test here.
+ *         Any dependencies these modules declare in <code>module.txt</code> will be pulled in as well.</dd>
+ *     <dt>{@link UseWorldGenerator @UseWorldGenerator}</dt>
+ *     <dd>The URN of the world generator to use. Defaults to {@link org.terasology.moduletestingenvironment.fixtures.DummyWorldGenerator},
+ *         a flat world.</dd>
+ * </dl>
+ *
+ * <p>
+ * Every class annotated with this will create a single instance of {@link Engines} and use it during execution of
  * all tests in the class. This also means that all engine instances are shared between all tests in the class. If you
- * want isolated engine instances try {@link IsolatedMTEExtension}
+ * want isolated engine instances try {@link IsolatedMTEExtension}.
  * <p>
  * Note that classes marked {@link Nested} will share the engine context with their parent.
  * <p>
  * This will configure the logger and the current implementation is not subtle or polite about it, see
  * {@link #setupLogging()} for notes.
- * <p>
- * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
 public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestInstancePostProcessor {
 

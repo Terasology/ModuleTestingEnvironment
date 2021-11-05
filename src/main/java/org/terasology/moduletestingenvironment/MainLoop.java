@@ -31,13 +31,29 @@ import java.util.function.Supplier;
 /**
  * Methods to run the main loop of the game.
  * <p>
+ * Engines can be run while a condition is true via {@link #runWhile(Supplier)} <br>{@code mainLoop.runWhile(()-> true);}
+ * <p>
+ * or conversely run until a condition is true via {@link #runUntil(Supplier)} <br>{@code mainLoop.runUntil(()-> false);}
+ * <p>
+ * Test scenarios which take place in a particular location of the world must first make sure that location is loaded
+ * with {@link #makeBlocksRelevant makeBlocksRelevant} or {@link #makeChunksRelevant makeChunksRelevant}.
+ * <pre><code>
+ *     // Load everything within 40 blocks of x=123, z=456
+ *     mainLoop.runUntil(makeBlocksRelevant(
+ *         new BlockRegion(123, SURFACE_HEIGHT, 456).expand(40, 40, 40)));
+ * </code></pre>
+ * <p>
  * {@link MTEExtension} provides tests with a game engine, configured with a module environment
  * and a world. The engine is ready by the time a test method is executed, but does not <em>run</em>
  * until you use one of these methods.
  * <p>
  * If there are multiple engines (a host and one or more clients), they will tick in a round-robin fashion.
+ * <p>
+ * This class is available via dependency injection with the {@link org.terasology.engine.registry.In} annotation
+ * or as a parameter to a JUnit {@link org.junit.jupiter.api.Test} method; see {@link MTEExtension}.
  */
 public class MainLoop {
+    // TODO: Can we get rid of this by making sure our main loop is compatible with JUnit's timeout spec?
     long safetyTimeoutMs = ModuleTestingEnvironment.DEFAULT_SAFETY_TIMEOUT;
 
     private final Engines engines;
@@ -63,6 +79,12 @@ public class MainLoop {
     }
 
     /**
+     * Makes sure the area containing these blocks is loaded.
+     * <p>
+     * This method is asynchronous. Pass the result to {@link #runUntil(ListenableFuture)} if you need to wait until the area is ready.
+     *
+     * @see #makeChunksRelevant(BlockRegion) makeChunksRelevant if you have chunk coordinates instead of block coordinates.
+     *
      * @param blocks blocks to mark as relevant
      * @return relevant chunks
      */
@@ -71,6 +93,16 @@ public class MainLoop {
         return makeChunksRelevant(desiredChunkRegion, blocks.center(new Vector3f()));
     }
 
+    /**
+     * Makes sure the area containing these chunks is loaded.
+     * <p>
+     * This method is asynchronous. Pass the result to {@link #runUntil(ListenableFuture)} if you need to wait until the area is ready.
+     *
+     * @see #makeBlocksRelevant(BlockRegionc) makeBlocksRelevant if you have block coordinates instead of chunk coordinates.
+     *
+     * @param chunks to mark as relevant
+     * @return relevant chunks
+     */
     @SuppressWarnings("unused")
     public ListenableFuture<ChunkRegionFuture> makeChunksRelevant(BlockRegion chunks) {
         // Pick a central point (in block coordinates).
@@ -96,6 +128,11 @@ public class MainLoop {
         return blocks.transform(new Matrix4f().scaling(new Vector3f(Chunks.CHUNK_SIZE)));
     }
 
+    /**
+     * Runs until this future is complete.
+     *
+     * @return the result of the future
+     */
     public <T> T runUntil(ListenableFuture<T> future) {
         boolean timedOut = runUntil(future::isDone);
         if (timedOut) {

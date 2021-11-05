@@ -58,6 +58,14 @@ import java.util.Set;
  * simulating remote clients.
  * <p>
  * Most tests run with a single host and do not need to make direct references to this class.
+ * <p>
+ * This class is available via dependency injection with the {@link org.terasology.engine.registry.In} annotation
+ * or as a parameter to a JUnit {@link org.junit.jupiter.api.Test} method; see {@link MTEExtension}.
+ *
+ * <h2>Client Engine Instances</h2>
+ * Client instances can be easily created via {@link #createClient} which returns the in-game context of the created
+ * engine instance. When this method returns, the client will be in the {@link StateIngame} state and connected to the
+ * host. Currently all engine instances are headless, though it is possible to use headed engines in the future.
  */
 public class Engines {
     private static final Logger logger = LoggerFactory.getLogger(Engines.class);
