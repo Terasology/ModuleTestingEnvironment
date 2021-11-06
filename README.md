@@ -5,7 +5,7 @@ A test helper to instantiate a full headless TerasologyEngine instance in JUnit 
 ## Usage
 
 For more examples see
-[the test suite](https://github.com/terasology/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment).
+[the test suite](https://github.com/terasology/ModuleTestingEnvironment/tree/develop/src/test/java/org/terasology/moduletestingenvironment).
 
 Here's an example taken from the test suite:
 
