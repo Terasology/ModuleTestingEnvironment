@@ -31,21 +31,60 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * Junit 5 Extension for using {@link ModuleTestingHelper} in your test.
+ * Sets up a Terasology environment for use with your {@index JUnit} 5 test.
  * <p>
- * Supports Terasology's DI as in usual Systems. You can inject Managers via {@link In} annotation, constructor's or
- * test's parameters. Also you can inject {@link ModuleTestingHelper} itself.
+ * Supports Terasology's DI as in usual Systems. You can inject Managers via {@link In} annotation, constructors or
+ * test parameters. Also you can inject {@link MainLoop} or {@link Engines} to interact with the environment's engine.
  * <p>
- * Every class annotated with this will create a single {@link ModuleTestingHelper} and use it during execution of
+ * Example:
+ * <pre><code>
+ * import org.junit.jupiter.api.extension.ExtendWith;
+ * import org.junit.jupiter.api.Test;
+ * import org.terasology.engine.registry.In;
+ *
+ * &#64;{@link org.junit.jupiter.api.extension.ExtendWith}(MTEExtension.class)
+ * &#64;{@link Dependencies}("MyModule")
+ * &#64;{@link UseWorldGenerator}("Pathfinding:pathfinder")
+ * public class ExampleTest {
+ *
+ *     &#64;In
+ *     EntityManager entityManager;
+ *
+ *     &#64;In
+ *     {@link MainLoop} mainLoop;
+ *
+ *     &#64;Test
+ *     public void testSomething() {
+ *         // …
+ *     }
+ *
+ *     // Injection is also applied to the parameters of individual tests:
+ *     &#64;Test
+ *     public void testSomething({@link Engines} engines, WorldProvider worldProvider) {
+ *         // …
+ *     }
+ * }
+ * </code></pre>
+ * <p>
+ * You can configure the environment with these additional annotations:
+ * <dl>
+ *     <dt>{@link Dependencies @Dependencies}</dt>
+ *     <dd>Specify which modules to include in the environment. Put the name of your module under test here.
+ *         Any dependencies these modules declare in <code>module.txt</code> will be pulled in as well.</dd>
+ *     <dt>{@link UseWorldGenerator @UseWorldGenerator}</dt>
+ *     <dd>The URN of the world generator to use. Defaults to {@link org.terasology.moduletestingenvironment.fixtures.DummyWorldGenerator},
+ *         a flat world.</dd>
+ * </dl>
+ *
+ * <p>
+ * Every class annotated with this will create a single instance of {@link Engines} and use it during execution of
  * all tests in the class. This also means that all engine instances are shared between all tests in the class. If you
- * want isolated engine instances try {@link IsolatedMTEExtension}
+ * want isolated engine instances try {@link IsolatedMTEExtension}.
  * <p>
  * Note that classes marked {@link Nested} will share the engine context with their parent.
  * <p>
  * This will configure the logger and the current implementation is not subtle or polite about it, see
  * {@link #setupLogging()} for notes.
- * <p>
- * Use this within {@link org.junit.jupiter.api.extension.ExtendWith}
  */
 public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestInstancePostProcessor {
 
@@ -63,30 +102,37 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        ModuleTestingHelper helper = getHelper(extensionContext);
-        return helper.getHostContext().get(parameterContext.getParameter().getType()) != null
-                || parameterContext.getParameter().getType().equals(ModuleTestingEnvironment.class)
-                || parameterContext.getParameter().getType().equals(ModuleTestingHelper.class);
+        Class<?> type = parameterContext.getParameter().getType();
+        Engines engines = getEngines(extensionContext);
+        return engines.getHostContext().get(type) != null
+                || type.isAssignableFrom(Engines.class)
+                || type.isAssignableFrom(MainLoop.class)
+                || type.isAssignableFrom(ModuleTestingHelper.class);
     }
 
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        ModuleTestingHelper helper = getHelper(extensionContext);
+        Engines engines = getEngines(extensionContext);
         Class<?> type = parameterContext.getParameter().getType();
 
-        return getDIInstance(helper, type);
+        return getDIInstance(engines, type);
     }
 
-    private Object getDIInstance(ModuleTestingHelper helper, Class<?> type) {
-        if (type.equals(ModuleTestingHelper.class) || type.equals(ModuleTestingEnvironment.class)) {
-            return helper;
+    private Object getDIInstance(Engines engines, Class<?> type) {
+        if (type.isAssignableFrom(Engines.class)) {
+            return engines;
+        } else if (type.isAssignableFrom(MainLoop.class)) {
+            return new MainLoop(engines);
+        } else if (type.isAssignableFrom(ModuleTestingHelper.class)) {
+            return new ModuleTestingHelper(engines);
+        } else {
+            return engines.getHostContext().get(type);
         }
-        return helper.getHostContext().get(type);
     }
 
     @Override
     public void postProcessTestInstance(Object testInstance, ExtensionContext extensionContext) {
-        ModuleTestingHelper helper = getHelper(extensionContext);
+        Engines engines = getEngines(extensionContext);
         List<IllegalAccessException> exceptionList = new LinkedList<>();
         Class<?> type = testInstance.getClass();
         while (type != null) {
@@ -94,7 +140,7 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
                     .filter((field) -> field.getAnnotation(In.class) != null)
                     .peek((field) -> field.setAccessible(true))
                     .forEach((field) -> {
-                        Object candidateObject = getDIInstance(helper, field.getType());
+                        Object candidateObject = getDIInstance(engines, field.getType());
                         try {
                             field.set(testInstance, candidateObject);
                         } catch (IllegalAccessException e) {
@@ -121,9 +167,9 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
     }
 
     /**
-     * Get the ModuleTestingHelper for this test.
+     * Get the Engines for this test.
      * <p>
-     * The new ModuleTestingHelper instance is configured using the {@link Dependencies} and {@link UseWorldGenerator}
+     * The new Engines instance is configured using the {@link Dependencies} and {@link UseWorldGenerator}
      * annotations for the test class.
      * <p>
      * This will create a new instance when necessary. It will be stored in the
@@ -133,12 +179,12 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
      * @param context for the current test
      * @return configured for this test
      */
-    protected ModuleTestingHelper getHelper(ExtensionContext context) {
+    protected Engines getEngines(ExtensionContext context) {
         ExtensionContext.Store store = context.getStore(helperLifecycle.apply(context));
-        HelperCleaner autoCleaner = store.getOrComputeIfAbsent(
-                HelperCleaner.class, k -> new HelperCleaner(getDependencyNames(context), getWorldGeneratorUri(context)),
-                HelperCleaner.class);
-        return autoCleaner.helper;
+        EnginesCleaner autoCleaner = store.getOrComputeIfAbsent(
+                EnginesCleaner.class, k -> new EnginesCleaner(getDependencyNames(context), getWorldGeneratorUri(context)),
+                EnginesCleaner.class);
+        return autoCleaner.engines;
     }
 
     /**
@@ -177,39 +223,23 @@ public class MTEExtension implements BeforeAllCallback, ParameterResolver, TestI
     }
 
     /**
-     * Manages a ModuleTestingHelper for storage in an ExtensionContext.
+     * Manages Engines for storage in an ExtensionContext.
      * <p>
      * Implements {@link ExtensionContext.Store.CloseableResource CloseableResource} to dispose of
-     * the {@link ModuleTestingHelper} when the context is closed.
+     * the {@link Engines} when the context is closed.
      */
-    static class HelperCleaner implements ExtensionContext.Store.CloseableResource {
-        protected ModuleTestingHelper helper;
+    static class EnginesCleaner implements ExtensionContext.Store.CloseableResource {
+        protected Engines engines;
 
-        HelperCleaner(ModuleTestingHelper helper) {
-            this.helper = helper;
-        }
-
-        HelperCleaner(Set<String> dependencyNames, String worldGeneratorUri) {
-            this(setupHelper(new ModuleTestingHelper(), dependencyNames, worldGeneratorUri));
-        }
-
-        protected static ModuleTestingHelper setupHelper(ModuleTestingHelper helper, Set<String> dependencyNames,
-                                                         String worldGeneratorUri) {
-            // This is a shim to fit the existing ModuleTestingEnvironment interface, but
-            // I expect we can make things cleaner after we drop the old interface that is
-            // also pretending to be a TestCase class itself.
-            helper.setDependencies(dependencyNames);
-            if (worldGeneratorUri != null) {
-                helper.setWorldGeneratorUri(worldGeneratorUri);
-            }
-            helper.setup();
-            return helper;
+        EnginesCleaner(Set<String> dependencyNames, String worldGeneratorUri) {
+            engines = new Engines(dependencyNames, worldGeneratorUri);
+            engines.setup();
         }
 
         @Override
         public void close() {
-            helper.tearDown();
-            helper = null;
+            engines.tearDown();
+            engines = null;
         }
     }
 }
