@@ -2,32 +2,16 @@
 
 A test helper to instantiate a full headless TerasologyEngine instance in JUnit tests.
 
-## ⚠️ Issues
-
-On using MTE tests, you might face the following error:
-```
-java.lang.IllegalStateException: Modules only available if resolution was successful
-```
-In the logs, you should see something along the following lines:
-```
-08:11:52.856 [Test worker] ERROR org.terasology.moduletestingenvironment.TestingStateHeadlessSetup - Unable to resolve modules: [engine, DynamicCities, ModuleTestingEnvironment]
-```
-
-We do not know, yet, why this happens, but hope that with the migration to gestalt v7, the situation will improve or at least clarify a bit.
-Until the migration is complete, we suggest disabling the test using the `@Disable` annotation.
-
 ## Usage
 
-For complete JavaDoc please see the [documentation on Github Pages](https://terasology.github.io/ModuleTestingEnvironment/).
-
 For more examples see
-[the test suite](https://github.com/terasology/ModuleTestingEnvironment/tree/master/src/test/java/org/terasology/moduletestingenvironment).
+[the test suite](https://github.com/terasology/ModuleTestingEnvironment/tree/develop/src/test/java/org/terasology/moduletestingenvironment).
 
 Here's an example taken from the test suite:
 
 ```java
 @ExtendWith(MTEExtension.class)
-@Dependencies({"engine", "MyModule"})
+@Dependencies("MyModule")
 @UseWorldGenerator("CoreWorlds:flat")
 public class ExampleTest {
 
@@ -48,21 +32,21 @@ public class ExampleTest {
 
         // wait for both clients to be known to the server
         helper.runUntil(()-> Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size() == 2);
-        Assertions.assertEquals(2, Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size());
+        assertEquals(2, Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size());
 
         // run while a condition is true or until a timeout passes
         boolean timedOut = helper.runWhile(1000, ()-> true);
-        Assertions.assertTrue(timedOut);
+        assertTrue(timedOut);
 
         // send an event to a client's local player just for fun
         clientContext1.get(LocalPlayer.class).getClientEntity().send(new ResetCameraEvent());
 
         // wait for a chunk to be generated
-        helper.forceAndWaitForGeneration(Vector3i.zero());
+        helper.forceAndWaitForGeneration(new Vector3i());
 
         // set a block's type and immediately read it back
         worldProvider.setBlock(Vector3i.zero(), blockManager.getBlock("engine:air"));
-        Assertions.assertEquals("engine:air", worldProvider.getBlock(Vector3f.zero()).getURI().toString());
+        assertEquals("engine:air", worldProvider.getBlock(Vector3f.zero()).getURI().toString());
     }
 }
 ```

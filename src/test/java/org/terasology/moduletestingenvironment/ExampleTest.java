@@ -13,17 +13,17 @@ import org.terasology.engine.core.Time;
 import org.terasology.engine.entitySystem.entity.EntityManager;
 import org.terasology.engine.logic.players.LocalPlayer;
 import org.terasology.engine.logic.players.event.ResetCameraEvent;
-import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.engine.network.ClientComponent;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.world.WorldProvider;
 import org.terasology.engine.world.block.BlockManager;
+import org.terasology.moduletestingenvironment.extension.Dependencies;
 
 import java.io.IOException;
 
 @Tag("MteTest")
 @ExtendWith(MTEExtension.class)
-@Dependencies({"engine", "ModuleTestingEnvironment"})
+@Dependencies("ModuleTestingEnvironment")
 public class ExampleTest {
 
     @In

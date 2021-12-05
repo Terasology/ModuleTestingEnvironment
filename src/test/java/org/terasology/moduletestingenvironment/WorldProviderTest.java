@@ -7,10 +7,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.world.WorldProvider;
 import org.terasology.engine.world.block.BlockManager;
+import org.terasology.moduletestingenvironment.extension.Dependencies;
 
 @Tag("MteTest")
 @ExtendWith(MTEExtension.class)
@@ -22,11 +22,11 @@ public class WorldProviderTest {
     @In
     BlockManager blockManager;
     @In
-    ModuleTestingHelper helper;
+    MainLoop mainLoop;
 
     @Test
     public void defaultWorldSetBlockTest() {
-        helper.forceAndWaitForGeneration(new Vector3i());
+        mainLoop.forceAndWaitForGeneration(new Vector3i());
 
         // this will change if the worldgenerator changes or the seed is altered, the main point is that this is a real
         // block type and not engine:unloaded

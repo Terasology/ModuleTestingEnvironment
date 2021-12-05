@@ -9,29 +9,29 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.terasology.engine.entitySystem.entity.EntityManager;
-import org.terasology.moduletestingenvironment.extension.Dependencies;
 import org.terasology.engine.registry.In;
+import org.terasology.moduletestingenvironment.extension.Dependencies;
 
 @Tag("MteTest")
 @ExtendWith(MTEExtension.class)
 @Dependencies({"engine", "ModuleTestingEnvironment"})
 public class NestedTest {
     @In
-    public static ModuleTestingHelper outerHelper;
+    public static Engines outerEngines;
 
     @In
     public static EntityManager outerManager;
 
     @Test
     public void outerTest() {
-        Assertions.assertNotNull(outerHelper);
+        Assertions.assertNotNull(outerEngines);
         Assertions.assertNotNull(outerManager);
     }
 
     @Nested
     class NestedTestClass {
         @In
-        ModuleTestingHelper innerHelper;
+        Engines innerEngines;
 
         @In
         EntityManager innerManager;
@@ -39,7 +39,7 @@ public class NestedTest {
         @Test
         public void innerTest() {
             Assertions.assertSame(innerManager, outerManager);
-            Assertions.assertSame(innerHelper, outerHelper);
+            Assertions.assertSame(innerEngines, outerEngines);
         }
     }
 }

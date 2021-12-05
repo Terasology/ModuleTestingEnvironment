@@ -1,18 +1,5 @@
-/*
- * Copyright 2017 MovingBlocks
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2021 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
 package org.terasology.moduletestingenvironment;
 
 import com.google.common.collect.Lists;
@@ -38,7 +25,7 @@ import java.util.function.BiConsumer;
  * The receiver automatically collects events of the given type sent to its {@link Context}.
  *
  * <pre>
- * {@literal
+ * {@code
  * TestEventReceiver<DropItemEvent> dropReceiver = new TestEventReceiver<>(getHostContext(), DropItemEvent.class)
  * // fire some events
  * for (DropItemEvent event : dropReceiver.getEvents()) {
@@ -48,16 +35,16 @@ import java.util.function.BiConsumer;
  * </pre>
  * Users can optionally supply a {@link BiConsumer} to handle the events with custom logic.
  * <pre>
- * {@literal
+ * {@code
  * TestEventReceiver receiver = new TestEventReceiver<>(context, DropItemEvent.class, (event, entity) -> {
  *   // do something with the event or entity
  * });
  * }
  * </pre>
- * Additionally, a list of required <emph>component types</emph> can be passed to the event receiver. This is equivalent
+ * Additionally, a list of required <em>component types</em> can be passed to the event receiver. This is equivalent
  * to listing the components in the {@code ReceiveEvent(components = {...}} block of a regular event handler.
  * <pre>
- * {code
+ * {@code
  * TestEventReceiver receiver = new TestEventReceiver<>(context, DropItemEvent.class, (event, entity) -> {
  *   // do something with the event or entity
  * }, MagicItemComponent.class);
@@ -68,7 +55,7 @@ import java.util.function.BiConsumer;
  * AutoCloseable}):
  *
  * <pre>
- * {@literal
+ * {@code
  * try (TestEventReceiver<DropItemEvent> spy = new TestEventReceiver<>(getHostContext(), DropItemEvent.class)) {
  *   drops = spy.getEntityRefs();
  * }
@@ -91,17 +78,15 @@ public class TestEventReceiver<T extends Event> implements AutoCloseable, EventR
      * <p>
      * The following signature of a {@code TestEventReceiver} is equivalent to the event handler below:
      * <pre>
-     * {@code
-     * TestEventReceiver receiver = new TestEventReceiver<>(context, MyEvent.class, (event, entity) -> {
+     * TestEventReceiver receiver = new TestEventReceiver&lt;&gt;(context, MyEvent.class, (event, entity) -&gt; {
      *   // do something with the event or entity
      * }, MyComponent.class);
      *
      * // ... corresponds to
      *
-     * @ReceiveEvent(components = {MyComponent.class})
+     * &#64;ReceiveEvent(components = {MyComponent.class})
      * public void handler(MyEvent event, EntityRef entity) {
      *     // do something with the event or entity
-     * }
      * }
      * </pre>
      *
