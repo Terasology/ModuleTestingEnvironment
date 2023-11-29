@@ -42,8 +42,8 @@ public class ExampleTest {
         int currentClients = Lists.newArrayList(entityManager.getEntitiesWith(ClientComponent.class)).size();
 
         // create some clients (the library connects them automatically)
-        Context clientContext1 = helper.createClient();
-        Context clientContext2 = helper.createClient();
+        helper.createClient();
+        helper.createClient();
 
         int expectedClients = currentClients + 2;
 
