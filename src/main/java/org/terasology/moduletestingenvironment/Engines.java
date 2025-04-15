@@ -69,7 +69,7 @@ import java.util.Set;
 public class Engines {
     private static final Logger logger = LoggerFactory.getLogger(Engines.class);
 
-    protected final Set<String> dependencies = Sets.newHashSet("engine");
+    protected final Set<String> dependencies = Sets.newHashSet("engine", "unittest");
     protected String worldGeneratorUri = ModuleTestingEnvironment.DEFAULT_WORLD_GENERATOR;
     protected boolean doneLoading;
     protected Context hostContext;
@@ -242,7 +242,11 @@ public class Engines {
 
     protected void mockPathManager() {
         PathManager originalPathManager = PathManager.getInstance();
-        pathManager = Mockito.spy(originalPathManager);
+        if (org.mockito.Mockito.mockingDetails(originalPathManager).isMock()) {
+            pathManager = originalPathManager;
+        } else {
+            pathManager = Mockito.spy(originalPathManager);
+        }
         Mockito.when(pathManager.getModulePaths()).thenReturn(Collections.emptyList());
         pathManagerCleaner = new PathManagerProvider.Cleaner(originalPathManager, pathManager);
         PathManagerProvider.setPathManager(pathManager);
@@ -283,16 +287,18 @@ public class Engines {
     }
 
     void connectToHost(TerasologyEngine client, MainLoop mainLoop) {
-        CoreRegistry.put(Config.class, client.getFromEngineContext(Config.class));
+        Context clientContext = client.createChildContext();
+        clientContext.put(Config.class, client.getFromEngineContext(Config.class));
+        CoreRegistry.setContext(clientContext);
         JoinStatus joinStatus = null;
         try {
-            joinStatus = client.getFromEngineContext(NetworkSystem.class).join("localhost", 25777);
+            joinStatus = clientContext.get(NetworkSystem.class).join("localhost", 25777);
         } catch (InterruptedException e) {
             logger.warn("Interrupted while joining: ", e);
         }
 
         client.changeState(new StateLoading(joinStatus));
-        CoreRegistry.put(GameEngine.class, client);
+        clientContext.put(GameEngine.class, client);
 
         // TODO: subscribe to state change and return an asynchronous result
         //     so that we don't need to pass mainLoop to here.
