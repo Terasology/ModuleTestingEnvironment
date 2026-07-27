@@ -286,6 +286,16 @@ public class Engines {
         return terasologyEngine;
     }
 
+    /**
+     * Joins {@code client} to the local host and runs the engines until it reaches
+     * {@link StateIngame in-game}.
+     *
+     * @param client the client engine to connect to the local host
+     * @param mainLoop used to tick the engines while the join completes
+     * @throws RuntimeException if the client does not reach in-game before the wait times out. The
+     *         message reports the client's state at that point and the {@link JoinStatus}, which
+     *         distinguishes a join the host refused from one that was merely slow.
+     */
     void connectToHost(TerasologyEngine client, MainLoop mainLoop) {
         Context clientContext = client.createChildContext();
         clientContext.put(Config.class, client.getFromEngineContext(Config.class));
@@ -302,6 +312,40 @@ public class Engines {
 
         // TODO: subscribe to state change and return an asynchronous result
         //     so that we don't need to pass mainLoop to here.
-        mainLoop.runUntil(() -> client.getState() instanceof StateIngame);
+        try {
+            mainLoop.awaitUntil("client to finish joining and reach the in-game state",
+                    () -> client.getState() instanceof StateIngame);
+        } catch (AssertionError e) {
+            throw new RuntimeException(describeJoinFailure(client, joinStatus), e);
+        }
+    }
+
+    /**
+     * Explain why a client never reached in-game.
+     * <p>
+     * The wait result used to be discarded entirely, so a client that never connected was reported as
+     * a success and the caller carried on with an engine that was not in-game - the failure surfaced
+     * later, somewhere unrelated. {@link JoinStatus} knows whether the host refused the join, where it
+     * stalled and why, and was going unused.
+     */
+    private static String describeJoinFailure(TerasologyEngine client, JoinStatus joinStatus) {
+        StringBuilder message = new StringBuilder("Could not connect client ").append(client)
+                .append(" to local host. Client state when we gave up: ")
+                .append(client.getState() == null ? "none" : client.getState().getClass().getSimpleName());
+
+        if (joinStatus == null) {
+            message.append("; the join was interrupted before it reported any status");
+            return message.toString();
+        }
+
+        message.append("; join status ").append(joinStatus.getStatus())
+                .append(" during '").append(joinStatus.getCurrentActivity())
+                .append("' (").append(Math.round(joinStatus.getCurrentActivityProgress() * 100)).append("%)");
+
+        String error = joinStatus.getErrorMessage();
+        if (error != null && !error.isEmpty()) {
+            message.append("; error: ").append(error);
+        }
+        return message.toString();
     }
 }
