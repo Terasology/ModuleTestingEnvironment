@@ -13,15 +13,7 @@
     </encoder>
 
     <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
-      <evaluator>
-        <matcher>
-          <Name>reflectionsEmpty</Name>
-          <!-- filter out odd numbered statements -->
-          <regex>given scan urls are empty</regex>
-        </matcher>
-
-        <expression>reflectionsEmpty.matches(message)</expression>
-      </evaluator>
+      <evaluator class="org.terasology.moduletestingenvironment.logging.ReflectionsEmptyEvaluator" />
       <OnMismatch>NEUTRAL</OnMismatch>
       <OnMatch>DENY</OnMatch>
     </filter>
