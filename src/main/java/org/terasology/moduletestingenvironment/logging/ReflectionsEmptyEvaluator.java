@@ -24,7 +24,10 @@ public class ReflectionsEmptyEvaluator extends ContextAwareBase implements Event
 
     @Override
     public boolean evaluate(ILoggingEvent event) throws EvaluationException {
-        return REFLECTIONS_EMPTY.matcher(event.getFormattedMessage()).find();
+        // Raw message, not formatted: formatting would also deny events whose arguments
+        // happen to contain the phrase.
+        String message = event.getMessage();
+        return message != null && REFLECTIONS_EMPTY.matcher(message).find();
     }
 
     @Override
